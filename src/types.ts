@@ -15,17 +15,14 @@ export interface Data<P> {
 }
 
 export type Stack = {
+    useRedux<T extends { [key: string]: (state: any) => any }>(config: T): {
+        [key in keyof T]: ReturnType<T[key]>
+    }
     createState<T>(initial: T): [T, (newState: Partial<T>) => void]
-    useRedux<T>(config: T): T
     inRender(callback: () => void): void
     handleContext<T>(context: Context<T>): () => T
     getDispatcher<T extends Dispatch<AnyAction>>(): T
 }[]
-
-export type Selector<T> = {
-    type: 'selector'
-    value(): T
-}
 
 export interface StateRef<S> {
     current: S

@@ -5,7 +5,7 @@ import { memo, useContext, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import prepareState from './prepareState'
-import type { Constructor, Data, Selector, Stack } from './types'
+import type { Constructor, Data, Stack } from './types'
 
 const stack: Stack = [{
     createState() { throw new Error('Попытка вызывать createState вне конструктора') },
@@ -30,9 +30,6 @@ export const getDispatcher: Stack[number]['getDispatcher'] = () => {
 }
 export const useRedux: Stack[number]['useRedux'] = config => {
     return getLast().useRedux(config)
-}
-export const select = <T>(selector: (state: any) => T) => {
-    return <T><unknown> { type: 'selector', value: selector }
 }
 
 function advancedComponent<P extends {}>(constructor: Constructor<P>) {
@@ -65,16 +62,13 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
 
 function getFuncs<T>(local: Data<T>): Stack[number] {
     return {
-        useRedux<T>(config: T) {
-            const state = {} as T
+        useRedux(config) {
+            const state: any = {}
+            const selectors: { [name: string]: (state: any) => any } = {}
 
-            const selectors: { [name: string]: () => any } = {}
             for (const name in config) {
-                const item = config[name] as unknown as T & Selector<T>
-                if (item.type === 'selector') {
-                    selectors[name] = <()=>any><unknown> item.value
-                    state[name] = useSelector(selectors[name])
-                }
+                selectors[name] = config[name]
+                state[name] = useSelector(selectors[name])
             }
 
             local.inserts.push(() => {

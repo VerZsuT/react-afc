@@ -105,7 +105,7 @@ import { createState } from 'react-afc'
 
 `setState` работает аналогично классовому `this.setState`
 
-Для работы с `Redux` используем `useRedux`, `select` и `getDispatcher`
+Для работы с `Redux` используем `useRedux` и `getDispatcher`
 
 ```ts
 import { useRedux, select } from 'react-afc'
@@ -113,10 +113,9 @@ import type { Store, AppDispatch } from './store'
 import { addCount } from './countSlice'
 
 ...
-    // Обязательно оборачиваем селектор в select
     const reduxState = useRedux({
-        count: select((store: Store) => store.count.value),
-        // key: select(<selector>)
+        count: (store: Store) => store.count.value,
+        // key: selector
     })
     const dispatch = getDispatcher<AppDispatch>()
 

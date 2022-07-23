@@ -31,7 +31,7 @@ export const getDispatcher: Stack[number]['getDispatcher'] = () => {
 export const useRedux: Stack[number]['useRedux'] = config => {
     return getLast().useRedux(config)
 }
-export const select = <T>(selector: () => T) => {
+export const select = <T>(selector: (state: any) => T) => {
     return <T><unknown> { type: 'selector', value: selector }
 }
 

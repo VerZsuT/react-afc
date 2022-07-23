@@ -41,19 +41,17 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
             props: <P>{}
         }).current
 
-        local.props = props
+        for (const name in local.props)
+            delete local.props[name]
+
+        Object.assign(local.props, props)
 
         if (local.render) {
             local.inserts.forEach(callback => callback())
         }
         else {
-            const propsProxy = new Proxy(<P>{}, {
-                get: (_, name) => {
-                    if (name === '_target_')
-                        return local.props
-                    else
-                        return local.props[name]
-                }
+            const propsProxy = new Proxy(local.props, {
+                get: (_, name) => local.props[name]
             })
 
             stack.push(getFuncs(local))

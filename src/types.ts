@@ -11,7 +11,7 @@ export interface Data<P> {
     inserts: FuncToInsert[]
     render: RenderFunc
     props: P
-    context: any
+    contexts: any[]
 }
 
 export type Stack = {

@@ -37,7 +37,7 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
         const local: Data<P> = useRef({
             inserts: [],
             render: null,
-            context: null,
+            contexts: [],
             props: <P>{}
         }).current
 
@@ -91,11 +91,12 @@ function getFuncs<T>(local: Data<T>): Stack[number] {
             callback()
         },
         handleContext(context) {
-            local.context = useContext(context)
+            const index = local.contexts.length
+            local.contexts[index] = useContext(context)
             local.inserts.push(() => {
-                local.context = useContext(context)
+                local.contexts[index] = useContext(context)
             })
-            return () => local.context
+            return () => local.contexts[index]
         },
         getDispatcher() {
             local.inserts.push(() => {

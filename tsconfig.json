@@ -8,7 +8,7 @@
       "allowSyntheticDefaultImports": true,
       "esModuleInterop": true,
       "sourceMap": false,
-      "outDir": "dist",
+      "outDir": "lib",
       "newLine": "LF",
       "moduleResolution": "node",
       "declaration": true,

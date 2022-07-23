@@ -15,7 +15,7 @@ export interface Data<P> {
 }
 
 export type Stack = {
-    createState<T>(initial: T): [T, (newState: T) => void]
+    createState<T>(initial: T): [T, (newState: Partial<T>) => void]
     useRedux<T>(config: T): T
     inRender(callback: () => void): void
     handleContext<T>(context: Context<T>): () => T

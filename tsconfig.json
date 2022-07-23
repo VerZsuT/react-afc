@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+      "target": "ES5",
+      "lib": ["ES6"],
+      "jsx": "react-jsx",
+      "isolatedModules": true,
+      "module": "ES6",
+      "allowSyntheticDefaultImports": true,
+      "esModuleInterop": true,
+      "sourceMap": false,
+      "outDir": "dist",
+      "newLine": "LF",
+      "moduleResolution": "node",
+      "declaration": true,
+      "baseUrl": ".",
+      "pretty": true
+    },
+    "include": [
+      "src/**/*.ts",
+      "src/**/*.tsx"
+    ],
+    "exclude": ["node_modules"]
+  }
+  

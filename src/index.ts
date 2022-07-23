@@ -48,7 +48,12 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
         }
         else {
             const propsProxy = new Proxy(<P>{}, {
-                get: (_, name) => local.props[name]
+                get: (_, name) => {
+                    if (name === '_target_')
+                        return local.props
+                    else
+                        return local.props[name]
+                }
             })
 
             stack.push(getFuncs(local))

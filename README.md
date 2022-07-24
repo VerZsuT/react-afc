@@ -7,7 +7,7 @@
 
 ## Установка
 
-```cmd
+```npm
 npm i react-afc
 ```
 
@@ -127,7 +127,9 @@ import { addCount } from './countSlice'
 
 ## Работа с контекстом
 
-Для использования контекста импортируем `handleContext`
+Для использования контекста импортируем `handleContext`.
+
+_Возвращает `геттер` контекста, а не сам контекст._
 
 ```ts
 import { handleContext } from 'react-afc'
@@ -181,4 +183,230 @@ After inRender
 
 ```text
 inRender
+```
+
+## Как нельзя делать
+
+Распаковка при объявлении сломает обновление пропсов: `name` и `age` будут одни и те же каждый рендер
+
+`props` - `Proxy` над входящими в компонент пропсами.
+
+```ts
+import advanced from 'react-afc'
+
+interface Props {
+    name: string
+    age: number
+}
+
+// Ошибка !!!
+const Component = advanced<Props>(({ name, age })) => {...}
+```
+
+Распаковка `state`, `props` или `reduxState` напрямую в теле конструктора 'заморозит' эти переменные.
+
+`state` - `Proxy` над состоянием
+
+`name`, `age` и `surname` не будут меняться между рендерами.
+
+_Распаковка в **render-функции** или обработчиках не имеет такой проблемы_
+
+```ts
+import { createState, useRedux } from 'react-afc'
+import type { RootState } from './state'
+
+...
+    const [state, setState] = createState({
+        name: 'Aleksandr',
+        age: 20
+    })
+    const reduxState = useRedux({
+        count: (state: RootState) => state.count.value
+    })
+    const { name, age } = state // Ошибка, заморожены !!!
+    const { count } = reduxState
+    const { surname } = props
+
+    function onClick() {
+        const { name, age } = state // Правильно, всегда актуальные
+        const { count } = reduxState
+        const { surname } = props
+    }
+...
+```
+
+Использовать обычные хуки в конструкторе без обёртки `inRender` запрещено.
+
+Так как "конструктор" вызывается один раз, то вызов обычных хуков в нём не будет повторяться в рендере, что приведёт к поломке работы хуков и падению приложения.
+
+Содержимое `inRender` вызывается каждый рендер, что обеспечивает правильную работу хуков.
+
+_Примечание:_ Ипользуйте `inRender` лишь тогда, когда нет другого варианта.
+
+```ts
+import { inRender, createState } from 'react-afc'
+import { useEffect } from 'react'
+
+...
+    const [state, setState] = createState({...})
+
+    useEffect(...) // Ошибка !!!
+
+    inRender(() => {
+        useEffect(...) // Правильно
+    })
+...
+```
+
+## Справка по API
+
+### defalt import
+
+```ts
+export default advancedComponent<P>((props: P) => React.FC)): React.FC<P>
+```
+
+Принимает _функцию-конструктор_, которая должна вернуть обычную _функцию-компонент_.
+
+Возвращает обёрнутый компонент. Не является `HOK`.
+
+```ts
+import advancedComponent from 'react-afc'
+
+const Component = advancedComponent(props => {
+    ...
+    return () => ReactNode
+})
+```
+
+### createState
+
+```ts
+export function createState<S>(initial: S): [S, (newState: Partial<S>) => void]
+```
+
+Принимает объект состояния.
+
+Возвращает массив `[state, stateSetter]`.
+
+_`state` = `Proxy<originalState>`_
+
+`stateSetter` принимает частичный или полный объект нового состояния. Объединяет старый и новый объект (аналогично классовому `this.setState`)
+
+```ts
+import { createState } from 'react-afc'
+
+...
+    const [state, setState] = createState({
+        name: 'Boris',
+        age: 30
+    })
+
+    function onChange() {
+        setState({ age: 20 }) // State = { name: 'Boris', age: 20 }
+    }
+...
+```
+
+### inRender
+
+```ts
+export function inRender(callback: () => void): void
+```
+
+Принимает любую функцию.
+
+Вызывает её сразу и перед каждым рендером.
+
+```ts
+import { inRender } from 'react-afc'
+
+...
+    inRender(() => {
+        useEffect(...)
+        anyCommonHook()
+    })
+...
+```
+
+### handleContext
+
+```ts
+export function handleContext<T>(context: React.Context<T>): () => T
+```
+
+Принимает объект контекста.
+
+Подписывается на изменения контекста и возвращает `contextGetter`.
+
+```ts
+import { handleContext } from 'react-afc'
+import NameContext from './NameContext'
+
+...
+    const getContext = handleContext(NameContext)
+
+    function greet() {
+        const name = getContext()
+        return `Hi, ${name}!`
+    }
+...
+```
+
+### useRedux
+
+```ts
+export function useRedux<T>(config: T): {
+    [key in keyof T]: ReturnType<T[key]>
+}
+```
+
+Принимает конфиг-объект вида `{ ключ: селектор }`.
+
+Подписывается на изменение стора и возвращает объект вида `{ ключ: значение_по_селектору }`.
+
+```ts
+import { useRedux } from 'react-afc'
+import { selectName, selectAge } from './personSlice'
+import type RootState from './state'
+
+...
+    const reduxState = useRedux({
+        name: selectName,
+        age: selectAge,
+        count: (state: RootState) => state.count.value
+    })
+
+    function func() {
+        const { name, age, count } = reduxState
+    }
+...
+```
+
+### getDispatcher
+
+```ts
+export function getDispatcher<T extends Dispatch<AnyAction>>(): T
+```
+
+Ничего не принимает.
+
+Возвращает `redux-dispatch`.
+
+```ts
+import { getDispatcher } from 'react-afc'
+import { changeName, changeAge } from './personSlice'
+import type { AppDispatch } from './state'
+
+...
+    const dispatch = getDispatcher<AppDispatch>()
+
+    function onChangeName(value: string) {
+        dispatch(changeName(value))
+    }
+
+    function onChangeAge(value: number) {
+        dispatch(changeAge(value))
+    }
+...
 ```

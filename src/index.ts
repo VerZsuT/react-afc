@@ -47,14 +47,14 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
             local.inserts.forEach(callback => callback())
         }
         else {
-            const propsProxy = new Proxy(local.props, {
+            const propsProxy = new Proxy(<P>{}, {
                 get: (_, name) => local.props[name],
                 ownKeys: () => Reflect.ownKeys(local.props),
                 getOwnPropertyDescriptor(_, name) {
                     return {
-                        enumerable: true,
+                        ...Object.getOwnPropertyDescriptor(local.props, name),
                         configurable: true,
-                        value: local.props[name]
+                        enumerable: true
                     }
                 }
             })

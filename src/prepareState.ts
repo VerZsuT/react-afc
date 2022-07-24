@@ -16,9 +16,9 @@ export default <T extends {}>(initial: T): OutType<T> => {
             ownKeys: () => Reflect.ownKeys(ref.current),
             getOwnPropertyDescriptor(_, name) {
                 return {
+                    ...Object.getOwnPropertyDescriptor(ref.current, name),
                     configurable: true,
-                    enumerable: true,
-                    value: ref.current[name]
+                    enumerable: true
                 }
             }
         }),

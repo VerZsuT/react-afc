@@ -41,17 +41,22 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
             props: <P>{}
         }).current
 
-        for (const name in local.props)
-            delete local.props[name]
-
-        Object.assign(local.props, props)
+        local.props = props
 
         if (local.render) {
             local.inserts.forEach(callback => callback())
         }
         else {
             const propsProxy = new Proxy(local.props, {
-                get: (_, name) => local.props[name]
+                get: (_, name) => local.props[name],
+                ownKeys: () => Reflect.ownKeys(local.props),
+                getOwnPropertyDescriptor(_, name) {
+                    return {
+                        enumerable: true,
+                        configurable: true,
+                        value: local.props[name]
+                    }
+                }
             })
 
             stack.push(getFuncs(local))
@@ -82,12 +87,10 @@ function getFuncs<T>(local: Data<T>): Stack[number] {
             return state
         },
         createState(initialState) {
-            const out = prepareState(initialState)
-    
             local.inserts.push(() => {
                 useState(initialState)
             })
-            return out
+            return prepareState(initialState)
         },
         inRender(callback) {
             local.inserts.push(callback)

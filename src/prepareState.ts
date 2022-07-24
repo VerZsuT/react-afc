@@ -12,7 +12,15 @@ export default <T extends {}>(initial: T): OutType<T> => {
 
     return [
         new Proxy(<T>{}, {
-            get: (_, name: string) => ref.current[name]
+            get: (_, name: string) => ref.current[name],
+            ownKeys: () => Reflect.ownKeys(ref.current),
+            getOwnPropertyDescriptor(_, name) {
+                return {
+                    configurable: true,
+                    enumerable: true,
+                    value: ref.current[name]
+                }
+            }
         }),
         (partialState: T) => {
             const newState = { ...ref.current, ...partialState }

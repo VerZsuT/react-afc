@@ -18,7 +18,7 @@ export type UseReduxType = <T extends { [key: string]: (state: any) => any }>(co
     [key in keyof T]: ReturnType<T[key]>
 }
 
-export type CreateStateType = <T>(initial: T) => [T, (newState: Partial<T>) => void]
+export type CreateStateType = <T>(initial: T) => [T, (partialState: Partial<T>) => void]
 
 export type InRenderType = (callback: () => void) => void
 
@@ -36,7 +36,3 @@ export type Stack = {
     getDispatcher: GetDispatcherType
     afterUnmount: AfterUnmountType
 }[]
-
-export interface StateRef<S> {
-    current: S
-}

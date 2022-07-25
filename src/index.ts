@@ -1,10 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { memo, useContext, useEffect, useRef, useState } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
 
-import MethodsStack from './MethodsStack'
 import prepareState from './prepareState'
 import type {
     Constructor,
@@ -18,59 +18,60 @@ import type {
     Data
 } from './types'
 
-const stack = new MethodsStack()
+function outsideCallHandler(name: string) { 
+    return () => { throw new Error(`Попытка вызвать ${name} вне конструктора`) }
+}
 
-export const getDispatcher: GetDispatcherType = () => stack.last.getDispatcher()
-export const handleContext: HandleContextType = context => stack.last.handleContext(context)
-export const afterUnmount: AfterUnmountType = callback => stack.last.afterUnmount(callback)
-export const createState: CreateStateType = initial => stack.last.createState(initial)
-export const inRender: InRenderType = callback => stack.last.inRender(callback)
-export const useRedux: UseReduxType = config => stack.last.useRedux(config)
+const stack: Stack = [{
+    handleContext: outsideCallHandler('handleContext'),
+    getDispatcher: outsideCallHandler('getDispatcher'),
+    afterUnmount: outsideCallHandler('afterUnmount'),
+    createState: outsideCallHandler('createState'),
+    inRender: outsideCallHandler('inRender'),
+    useRedux: outsideCallHandler('useRedux')
+}]
+
+const last = () => stack[stack.length - 1]
+
+export const getDispatcher: GetDispatcherType = () => last().getDispatcher()
+export const handleContext: HandleContextType = context => last().handleContext(context)
+export const afterUnmount: AfterUnmountType = callback => last().afterUnmount(callback)
+export const createState: CreateStateType = initial => last().createState(initial)
+export const inRender: InRenderType = callback => last().inRender(callback)
+export const useRedux: UseReduxType = config => last().useRedux(config)
 
 function advancedComponent<P extends {}>(constructor: Constructor<P>) {
     return memo((props: P) => {
         const local: Data<P> = useRef({
-            inserts: [],
             render: null,
+            inserts: [],
             contexts: [],
             props: <P>{}
         }).current
 
-        local.props = props
+        for (const name in local.props)
+            delete local.props[name]
 
-        if (local.render) {
-            local.inserts.forEach(callback => callback())
-        }
-        else {
-            const propsProxy = new Proxy(<P>{}, {
-                get: (_, name) => local.props[name],
-                ownKeys: () => Reflect.ownKeys(local.props),
-                getOwnPropertyDescriptor(_, name) {
-                    return {
-                        ...Object.getOwnPropertyDescriptor(local.props, name),
-                        configurable: true,
-                        enumerable: true
-                    }
-                }
-            })
+        Object.assign(local.props, props)
 
-            stack.push(getFuncs(local))
-            local.render = constructor(propsProxy)
+        if (local.render === null) {
+            stack.push(closureMethods(local))
+            local.render = constructor(local.props)
             stack.pop()
+            return local.render()
         }
+
+        local.inserts.forEach(callback => callback())
 
         return local.render()
     })
 }
 
-function getFuncs<T>(local: Data<T>): Stack[number] {
+function closureMethods<T>(local: Data<T>): Stack[number] {
     return {
         afterUnmount(callback) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
+            local.inserts.push(() => useEffect(() => callback, []))
             useEffect(() => callback, [])
-            local.inserts.push(() => {
-                useEffect(() => callback, [])
-            })
         },
         useRedux(config) {
             const state: any = {}
@@ -89,9 +90,7 @@ function getFuncs<T>(local: Data<T>): Stack[number] {
             return state
         },
         createState(initialState) {
-            local.inserts.push(() => {
-                useState(initialState)
-            })
+            local.inserts.push(() => useState(initialState))
             return prepareState(initialState)
         },
         inRender(callback) {
@@ -101,15 +100,11 @@ function getFuncs<T>(local: Data<T>): Stack[number] {
         handleContext(context) {
             const index = local.contexts.length
             local.contexts[index] = useContext(context)
-            local.inserts.push(() => {
-                local.contexts[index] = useContext(context)
-            })
+            local.inserts.push(() => local.contexts[index] = useContext(context))
             return () => local.contexts[index]
         },
         getDispatcher() {
-            local.inserts.push(() => {
-                useDispatch()
-            })
+            local.inserts.push(useDispatch)
             return useDispatch()
         }
     }

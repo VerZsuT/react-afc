@@ -188,8 +188,6 @@ inRender
 
 Распаковка при объявлении сломает обновление пропсов: `name` и `age` будут одни и те же каждый рендер
 
-`props` - `Proxy` над входящими в компонент пропсами.
-
 ```ts
 import advanced from 'react-afc'
 
@@ -203,8 +201,6 @@ const Component = advanced<Props>(({ name, age })) => {...}
 ```
 
 Распаковка `state`, `props` или `reduxState` напрямую в теле конструктора 'заморозит' эти переменные.
-
-`state` - `Proxy` над состоянием
 
 `name`, `age` и `surname` не будут меняться между рендерами.
 
@@ -310,8 +306,6 @@ export function createState<S>(initial: S): [S, (newState: Partial<S>) => void]
 
 Возвращает массив `[state, stateSetter]`.
 
-_`state` = `Proxy<originalState>`_
-
 `stateSetter` принимает частичный или полный объект нового состояния. Объединяет старый и новый объект (аналогично классовому `this.setState`)
 
 ```ts
@@ -412,7 +406,7 @@ export function getDispatcher<T extends Dispatch<AnyAction>>(): T
 
 Ничего не принимает.
 
-Возвращает `redux-dispatch`.
+Возвращает `redux dispatch`.
 
 ```ts
 import { getDispatcher } from 'react-afc'

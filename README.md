@@ -37,8 +37,7 @@ interface Props {
 export default advancedComponent<Props>(props => {
     const [state, setState] = createState({
         multiplier: "2",
-        number: "5",
-        name: "Ghost"
+        number: "5"
     })
 
     function onChangeMult(value: string) {
@@ -260,10 +259,10 @@ import { useEffect } from 'react'
 
 ## Справка по API
 
-### defalt import
+### default import
 
 ```ts
-export default advancedComponent<P>((props: P) => React.FC)): React.FC<P>
+export default advancedComponent<P>((props: P) => React.FC): React.FC<P>
 ```
 
 Принимает _функцию-конструктор_, которая должна вернуть обычную _функцию-компонент_.
@@ -277,6 +276,28 @@ const Component = advancedComponent(props => {
     ...
     return () => ReactNode
 })
+```
+
+### afterUnmount
+
+```ts
+export function afterUnmount(callback: () => void): void
+```
+
+Принимает функцию без аргументов.
+
+Вызывает её когда компонент был демонтирован.
+
+_То же самое что и `useEffect(() => ..., [])`_
+
+```ts
+import { afterUnmount } from 'react-afc'
+
+...
+    afterUnmount(() => {
+        document.removeEventListener(...)
+    })
+...
 ```
 
 ### createState
@@ -314,7 +335,7 @@ import { createState } from 'react-afc'
 export function inRender(callback: () => void): void
 ```
 
-Принимает любую функцию.
+Принимает функцию без аргументов.
 
 Вызывает её сразу и перед каждым рендером.
 

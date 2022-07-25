@@ -1,36 +1,31 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
-import { memo, useContext, useRef, useState } from 'react'
+import { memo, useContext, useEffect, useRef, useState } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
 
+import MethodsStack from './MethodsStack'
 import prepareState from './prepareState'
-import type { Constructor, Data, Stack } from './types'
+import type {
+    Constructor,
+    CreateStateType,
+    GetDispatcherType,
+    HandleContextType,
+    AfterUnmountType,
+    InRenderType,
+    UseReduxType,
+    Stack,
+    Data
+} from './types'
 
-const stack: Stack = [{
-    createState() { throw new Error('Попытка вызывать createState вне конструктора') },
-    inRender() { throw new Error('Попытка вызывать inRender вне конструктора') },
-    handleContext() { throw new Error('Попытка вызывать handleContext вне конструктора') },
-    getDispatcher() { throw new Error('Попытка вызывать getDispatcher вне конструктора') },
-    useRedux() { throw new Error('Попытка вызывать getDispatcher вне конструктора') }
-}]
-const getLast = () => stack[stack.length - 1]
+const stack = new MethodsStack()
 
-export const createState: Stack[number]['createState'] = initial => {
-    return getLast().createState(initial)
-}
-export const inRender: Stack[number]['inRender'] = callback => {
-    return getLast().inRender(callback)
-}
-export const handleContext: Stack[number]['handleContext'] = context => {
-    return getLast().handleContext(context)
-}
-export const getDispatcher: Stack[number]['getDispatcher'] = () => {
-    return getLast().getDispatcher()
-}
-export const useRedux: Stack[number]['useRedux'] = config => {
-    return getLast().useRedux(config)
-}
+export const getDispatcher: GetDispatcherType = () => stack.last.getDispatcher()
+export const handleContext: HandleContextType = context => stack.last.handleContext(context)
+export const afterUnmount: AfterUnmountType = callback => stack.last.afterUnmount(callback)
+export const createState: CreateStateType = initial => stack.last.createState(initial)
+export const inRender: InRenderType = callback => stack.last.inRender(callback)
+export const useRedux: UseReduxType = config => stack.last.useRedux(config)
 
 function advancedComponent<P extends {}>(constructor: Constructor<P>) {
     return memo((props: P) => {
@@ -70,6 +65,13 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
 
 function getFuncs<T>(local: Data<T>): Stack[number] {
     return {
+        afterUnmount(callback) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            useEffect(() => callback, [])
+            local.inserts.push(() => {
+                useEffect(() => callback, [])
+            })
+        },
         useRedux(config) {
             const state: any = {}
             const selectors: { [name: string]: (state: any) => any } = {}

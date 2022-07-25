@@ -14,14 +14,27 @@ export interface Data<P> {
     contexts: any[]
 }
 
+export type UseReduxType = <T extends { [key: string]: (state: any) => any }>(config: T) => {
+    [key in keyof T]: ReturnType<T[key]>
+}
+
+export type CreateStateType = <T>(initial: T) => [T, (newState: Partial<T>) => void]
+
+export type InRenderType = (callback: () => void) => void
+
+export type HandleContextType = <T>(context: Context<T>) => (() => T)
+
+export type GetDispatcherType = <T extends Dispatch<AnyAction>>() => T
+
+export type AfterUnmountType = (callback: () => void) => void
+
 export type Stack = {
-    useRedux<T extends { [key: string]: (state: any) => any }>(config: T): {
-        [key in keyof T]: ReturnType<T[key]>
-    }
-    createState<T>(initial: T): [T, (newState: Partial<T>) => void]
-    inRender(callback: () => void): void
-    handleContext<T>(context: Context<T>): () => T
-    getDispatcher<T extends Dispatch<AnyAction>>(): T
+    useRedux: UseReduxType
+    createState: CreateStateType
+    inRender: InRenderType
+    handleContext: HandleContextType
+    getDispatcher: GetDispatcherType
+    afterUnmount: AfterUnmountType
 }[]
 
 export interface StateRef<S> {

@@ -1,17 +1,18 @@
 {
     "compilerOptions": {
-      "target": "ES5",
-      "lib": ["ES6"],
+      "target": "ESNext",
+      "lib": ["ESNext"],
       "jsx": "react-jsx",
       "isolatedModules": true,
-      "module": "ES6",
+      "module": "ESNext",
       "allowSyntheticDefaultImports": true,
       "esModuleInterop": true,
       "sourceMap": false,
       "outDir": "lib",
       "newLine": "LF",
-      "moduleResolution": "node",
+      "emitDeclarationOnly": true,
       "declaration": true,
+      "moduleResolution": "node",
       "baseUrl": ".",
       "pretty": true
     },

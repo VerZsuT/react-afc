@@ -1,0 +1,11 @@
+{
+    "presets": [
+        "@babel/preset-react",
+        "@babel/preset-typescript",
+        ["minify", {
+            "mangle": {
+              "topLevel": true
+            }
+        }]
+    ]
+}

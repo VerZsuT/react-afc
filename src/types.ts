@@ -8,10 +8,9 @@ export type RenderFunc = () => JSX.Element
 export type Constructor<P> = (props: P) => RenderFunc
 
 export interface Data<P> {
-    inserts: FuncToInsert[]
+    inserts: Set<FuncToInsert>
     render: RenderFunc
     props: P
-    contexts: any[]
 }
 
 export type UseReduxType = <T extends { [key: string]: (state: any) => any }>(config: T) => {
@@ -28,11 +27,11 @@ export type GetDispatcherType = <T extends Dispatch<AnyAction>>() => T
 
 export type AfterUnmountType = (callback: () => void) => void
 
-export type Stack = {
+export type Methods = {
     useRedux: UseReduxType
     createState: CreateStateType
     inRender: InRenderType
     handleContext: HandleContextType
     getDispatcher: GetDispatcherType
     afterUnmount: AfterUnmountType
-}[]
+}

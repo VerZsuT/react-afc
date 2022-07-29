@@ -15,8 +15,7 @@ import type {
     InRenderType,
     UseReduxType,
     Methods,
-    Data,
-    FuncToInsert
+    Data
 } from './types'
 
 function outsideCallHandler(name: string) { 
@@ -46,8 +45,8 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
 
         if (!data) {
             ref.current = data = {
+                beforeRender: () => null,
                 render: null,
-                inserts: new Set<FuncToInsert>(),
                 props: {...props}
             }
 
@@ -63,16 +62,24 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
             delete data.props[name]
 
         Object.assign(data.props, props)
-        data.inserts.forEach(callback => callback())
 
+        data.beforeRender()
         return data.render()
     })
 }
 
 function closureMethods<T>(data: Data<T>): Methods {
+    function addToRender(callback: () => void) {
+        const prev = data.beforeRender
+        data.beforeRender = () => {
+            prev()
+            callback()
+        }
+    }
+
     return {
         afterUnmount(callback) {
-            data.inserts.add(() => useEffect(() => callback, []))
+            addToRender(() => useEffect(() => callback, []))
             useEffect(() => callback, [])
         },
         useRedux(config) {
@@ -83,26 +90,26 @@ function closureMethods<T>(data: Data<T>): Methods {
                     state[name] = useSelector(config[name])
             }
 
-            data.inserts.add(getValues)
+            addToRender(getValues)
             getValues()
 
             return state
         },
         createState(initialState) {
-            data.inserts.add(() => useState(null))
+            addToRender(() => useState(null))
             return prepareState(initialState)
         },
         inRender(callback) {
-            data.inserts.add(callback)
+            addToRender(callback)
             callback()
         },
         handleContext(context) {
             let contextValue = useContext(context)
-            data.inserts.add(() => contextValue = useContext(context))
+            addToRender(() => contextValue = useContext(context))
             return () => contextValue
         },
         getDispatcher() {
-            data.inserts.add(useDispatch)
+            addToRender(useDispatch)
             return useDispatch()
         }
     }

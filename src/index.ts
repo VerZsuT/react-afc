@@ -1,45 +1,49 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
 
+import type { Context } from 'react'
 import { memo, useContext, useEffect, useRef, useState } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
+import type { AnyAction, Dispatch } from 'redux'
 
-import prepareState from './prepareState'
-import type {
-    Constructor,
-    CreateStateType,
-    GetDispatcherType,
-    HandleContextType,
-    AfterUnmountType,
-    InRenderType,
-    UseReduxType,
-    Methods,
-    Data
-} from './types'
+import type { Constructor, Data, UseReduxConfig } from './types'
 
-function outsideCallHandler(name: string) { 
-    return () => { throw new Error(`Попытка вызвать ${name} вне конструктора`) }
+let currentData: Data<any> = null
+
+function addToRender(callback: () => void) {
+    const prev = currentData.beforeRender
+    currentData.beforeRender = () => {
+        prev()
+        callback()
+    }
 }
 
-let methods: Methods = {
-    handleContext: outsideCallHandler('handleContext'),
-    getDispatcher: outsideCallHandler('getDispatcher'),
-    afterUnmount: outsideCallHandler('afterUnmount'),
-    createState: outsideCallHandler('createState'),
-    inRender: outsideCallHandler('inRender'),
-    useRedux: outsideCallHandler('useRedux')
+function prepareState<T extends {}>(initial: T) {
+    const state = {...initial}
+    const setState = useState(null)[1]
+
+    return [
+        state,
+        partialState => {
+            for (const name in partialState) {
+                if (state[name] !== partialState[name]) {
+                    Object.assign(state, partialState)
+                    setState({})
+                    break
+                }
+            }
+        }
+    ] as [T, (partialState: Partial<T>) => void]
 }
 
-export const getDispatcher: GetDispatcherType = () => methods.getDispatcher()
-export const handleContext: HandleContextType = context => methods.handleContext(context)
-export const afterUnmount: AfterUnmountType = callback => methods.afterUnmount(callback)
-export const createState: CreateStateType = initial => methods.createState(initial)
-export const inRender: InRenderType = callback => methods.inRender(callback)
-export const useRedux: UseReduxType = config => methods.useRedux(config)
+function checkOutsideCall(name: string) {
+    if (currentData === null)
+        throw new Error(`Attempt to call '${name}' outside the constructor`)
+}
 
-function advancedComponent<P extends {}>(constructor: Constructor<P>) {
-    return memo((props: P) => {
+export function afc<P extends {}>(constructor: Constructor<P>) {
+    return (props: P) => {
         const ref = useRef<Data<P>>(null)
         let data = ref.current
 
@@ -49,12 +53,12 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
                 render: null,
                 props: {...props}
             }
-
-            const beforeMethods = methods
-            methods = closureMethods(data)
+        
+            const prevData = currentData
+            currentData = data
             data.render = constructor(data.props)
-            methods = beforeMethods
-
+            currentData = prevData
+        
             return data.render()
         }
 
@@ -65,54 +69,57 @@ function advancedComponent<P extends {}>(constructor: Constructor<P>) {
 
         data.beforeRender()
         return data.render()
-    })
-}
-
-function closureMethods<T>(data: Data<T>): Methods {
-    function addToRender(callback: () => void) {
-        const prev = data.beforeRender
-        data.beforeRender = () => {
-            prev()
-            callback()
-        }
-    }
-
-    return {
-        afterUnmount(callback) {
-            addToRender(() => useEffect(() => callback, []))
-            useEffect(() => callback, [])
-        },
-        useRedux(config) {
-            const state: any = {}
-
-            function getValues() {
-                for (const name in config)
-                    state[name] = useSelector(config[name])
-            }
-
-            addToRender(getValues)
-            getValues()
-
-            return state
-        },
-        createState(initialState) {
-            addToRender(() => useState(null))
-            return prepareState(initialState)
-        },
-        inRender(callback) {
-            addToRender(callback)
-            callback()
-        },
-        handleContext(context) {
-            let contextValue = useContext(context)
-            addToRender(() => contextValue = useContext(context))
-            return () => contextValue
-        },
-        getDispatcher() {
-            addToRender(useDispatch)
-            return useDispatch()
-        }
     }
 }
 
-export default advancedComponent
+export function afcMemo<P extends {}>(constructor: Constructor<P>) {
+    return memo(afc(constructor))
+}
+
+export function getDispatcher<T extends Dispatch<AnyAction>>(): T {
+    checkOutsideCall('getDispatcher')
+    addToRender(useDispatch)
+    return useDispatch()
+}
+
+export function handleContext<T>(context: Context<T>) {
+    checkOutsideCall('handleContext')
+    let contextValue = useContext(context)
+    addToRender(() => contextValue = useContext(context))
+    return () => contextValue
+}
+
+export function afterUnmount(callback: () => void) {
+    checkOutsideCall('afterUnmount')
+    addToRender(() => useEffect(() => callback, []))
+    useEffect(() => callback, [])
+}
+
+export function createState<T>(initial: T) {
+    checkOutsideCall('createState')
+    addToRender(() => useState(null))
+    return prepareState(initial)
+}
+
+export function inRender(callback: () => void) {
+    checkOutsideCall('inRender')
+    addToRender(callback)
+    callback()
+}
+
+export function useRedux<T extends UseReduxConfig<any>>(config: T): {
+    [key in keyof typeof config]: ReturnType<typeof config[key]>
+} {
+    checkOutsideCall('useRedux')
+    const state: any = {}
+
+    function getValues() {
+        for (const name in config)
+            state[name] = useSelector(config[name])
+    }
+
+    addToRender(getValues)
+    getValues()
+
+    return state
+}

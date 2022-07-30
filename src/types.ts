@@ -1,7 +1,3 @@
-import type { Context } from 'react'
-
-import type { Dispatch, AnyAction } from 'redux'
-
 export type FuncToInsert = () => void
 export type RenderFunc = () => JSX.Element
 
@@ -13,25 +9,6 @@ export interface Data<P> {
     props: P
 }
 
-export type UseReduxType = <T extends { [key: string]: (state: any) => any }>(config: T) => {
-    [key in keyof T]: ReturnType<T[key]>
-}
-
-export type CreateStateType = <T>(initial: T) => [T, (partialState: Partial<T>) => void]
-
-export type InRenderType = (callback: () => void) => void
-
-export type HandleContextType = <T>(context: Context<T>) => (() => T)
-
-export type GetDispatcherType = <T extends Dispatch<AnyAction>>() => T
-
-export type AfterUnmountType = (callback: () => void) => void
-
-export type Methods = {
-    useRedux: UseReduxType
-    createState: CreateStateType
-    inRender: InRenderType
-    handleContext: HandleContextType
-    getDispatcher: GetDispatcherType
-    afterUnmount: AfterUnmountType
+export type UseReduxConfig<T> = {
+    [key: string]: (state: T) => any
 }

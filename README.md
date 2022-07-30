@@ -1,59 +1,60 @@
 # React Advanced Function Component
 
-Позволяет использовать классовые преимущества в функциональных компонентах
-без дополнительных надстроек.
+Allows you to use class advantages in functional components
+without additional add-ons.
 
-Не является универсальным инструментом "для всего и вся", и не является заменой стандартных компонентов. Либа лишь позволяет упростить оптимизацию.
+Allows you to simplify optimization.
 
-## Установка
+## Installation
 
 ```npm
 npm i react-afc
 ```
 
-## Когда использовать
+## When to use
 
-Когда требуется оптимизировать компонент путём уменьшения перерисовки дочерних компонентов.
+When you need to optimize a component by reducing the rerender of child components.
 
-## Зачем
+## Why
 
-Чтобы не писать лишние `useMemo`, `useCallback` и `useRef`.
+In order not to write unnecessary `useMemo`, `useCallback` and `useRef`.
 
-## Что даёт
+## What gives
 
-Позволяет уменьшить кол-во вызовов хуков (что влияет как на читаемость, так и на оптимизацию), а также не беспокоиться о массиве зависимостей.
+Allows you to reduce the number of hook calls (which affects both readability and optimization), and also not to worry about an array of dependencies.
 
-## Производительность
+## Perfomance
 
-Библиотека максимально оптимизирована.
+The library is optimized as much as possible.
 
-`advancedConponent` возвращает `memo`-компонент (возможно будет добавлен аналог без обёртки в `memo`)
+`afcMemo` returns the `memo`-component
+`afc` returns a regular component
 
-Каждый рендер используется один хук `useRef`, а также обновляется переменная `props` (что занимает примерно 0.01мс).
+Each render uses one `useRef` hook, and the `prop` variable is also updated (which takes about 0.01ms).
 
-Вызов следующих методов добавляет логику, которая используется во время **каждого рендера**:
+Calling the following methods adds logic that is used during **each render**:
 
-- `createState` добавляет один вызов `useState`
-- `useRedux` добавлет вызовы `useSelector` в зависимости от переданного объекта (один ключ - один вызов хука)
-- `afterUnmount` добавляет один вызов `useEffect` с переданным коллбэком
-- `inRender` добавляет вызов переданного коллбэка (производительность напрямую зависит от действий в нём)
-- `handleContext` добавляет один вызов `useContext`
-- `getDispatcher` добавляет один вызов `useDispatch`
+- `createState` adds one `useState` call
+- `useRedux` add `useSelector` calls depending on the passed object (one key - one hook call)
+- `afterUnmount` adds one `useEffect` call with the passed callback
+- `inRender` adds a call the passed callback (performance directly depends on the actions in it)
+- `handleContext` adds one `useContext` call
+- `getDispatcher` adds one `useDispatch` call
 
-Каждый из методов может быть вызван **неограниченное** колличество раз, но только в пределах конструктора и в функциях, вызванных из него.
+Each of the methods can be called an **unlimited** number of times, but only within the constructor and in functions called from it.
 
-## Пример
+## Example
 
-_Пояснения см. ниже._
+_See the description below_.
 
 ```tsx
-import advancedComponent, { createState, inRender } from 'react-afc'
+import { createState, inRender, afcMemo } from 'react-afc'
 
 interface Props {
     exampleProp: number
 }
 
-export default advancedComponent<Props>(props => {
+export default afcMemo<Props>(props => {
     const [state, setState] = createState({
         multiplier: "2",
         number: "5"
@@ -86,29 +87,28 @@ export default advancedComponent<Props>(props => {
 })
 ```
 
-## Структура компонента
+## Component structure
 
 ```ts
-import afc from 'react-afc'
+import { afc } from 'react-afc'
 
 const Component = afc(props => {
-    // Тело "конструктора".
-    // Вызывается перед первым рендером.
-    // Хуки только в inRender.
+    // The body of the "constructor".
+    // Is called before the first render.
+    // Hooks only in inRender.
 
     return () => {
-        // render-функция, как в обычном компоненте.
-        // Вызывается каждый рендер.
-        // Спец. методы запрещены.
+        // render-function, as in a regular component.
+        // Every render is called.
 
         return <JSX />
     }
 })
 ```
 
-## Создание состояния
+## Creating a State
 
-Для работы с состоянием импортируем `createState`
+To work with the state, import `createState`
 
 ```ts
 import { createState } from 'react-afc'
@@ -121,18 +121,19 @@ import { createState } from 'react-afc'
 ...
 ```
 
-`setState` работает аналогично классовому `this.setState`
+`setState` works similarly to the class `this.setState`
 
-Для работы с `Redux` используем `useRedux` и `getDispatcher`
+To work with **Redux** use `useRedux` and `getDispatcher`
 
 ```ts
-import { useRedux, select } from 'react-afc'
+import { useRedux } from 'react-afc'
 import type { Store, AppDispatch } from './store'
-import { addCount } from './countSlice'
+import { addCount, selectCount } from './countSlice'
 
 ...
     const reduxState = useRedux({
         count: (store: Store) => store.count.value,
+        // or count: selectCount
         // key: selector
     })
     const dispatch = getDispatcher<AppDispatch>()
@@ -143,11 +144,11 @@ import { addCount } from './countSlice'
 ...
 ```
 
-## Работа с контекстом
+## Working with Context
 
-Для использования контекста импортируем `handleContext`.
+To use the context, import the `handleContext`.
 
-_Возвращает `геттер` контекста, а не сам контекст._
+_Returns the context **getter**, not the context itself_.
 
 ```ts
 import { handleContext } from 'react-afc'
@@ -162,7 +163,7 @@ import CountContext from './CountContext'
 ...
 ```
 
-## Использование обычных хуков в теле "конструктора"
+## Using regular hooks in the body of the "constructor"
 
 ```ts
 import { inRender } from 'react-afc'
@@ -175,7 +176,7 @@ import { inRender } from 'react-afc'
 ...
 ```
 
-`inRender` вызывается сразу и перед каждым рендером (чтобы не сломать хуки)
+`in Render` is called immediately and before each render (so as not to break hooks)
 
 ```ts
 import { inRender } from 'react-afc'
@@ -189,7 +190,7 @@ import { inRender } from 'react-afc'
 ...
 ```
 
-В данном примере вывод будет:
+In this example, the console output will be:
 
 ```text
 Constructor start
@@ -197,33 +198,32 @@ inRender
 After inRender
 ```
 
-И перед каждым следующим рендером будет выведено в консоль
+And before each next render it will be output to the console
 
 ```text
 inRender
 ```
 
-## Как нельзя делать
+## Main errors
 
-Распаковка при объявлении сломает обновление пропсов: `name` и `age` будут одни и те же каждый рендер
+Unpacking at the declaration will break the updating of the props: `name` and `age` will be the same every render
 
 ```ts
-import advanced from 'react-afc'
+import { afc } from 'react-afc'
 
 interface Props {
     name: string
     age: number
 }
 
-// Ошибка !!!
-const Component = advanced<Props>(({ name, age })) => {...}
+// Error !!!
+const Component = afc<Props>(({ name, age })) => {...}
 ```
 
-Распаковка `state`, `props` или `reduxState` напрямую в теле конструктора 'заморозит' эти переменные.
+Unpacking `state`, `props` or `reduxState` directly in the constructor body will **freeze** these variables:
+`name`, `age` and `surname` will not change between renders.
 
-`name`, `age` и `surname` не будут меняться между рендерами.
-
-_Распаковка в **render-функции** или обработчиках не имеет такой проблемы_
+_Unpacking in **render function** or handlers does not have such a problem_
 
 ```ts
 import { createState, useRedux } from 'react-afc'
@@ -237,25 +237,25 @@ import type { RootState } from './state'
     const reduxState = useRedux({
         count: (state: RootState) => state.count.value
     })
-    const { name, age } = state // Ошибка, заморожены !!!
+    const { name, age } = state // Error, freeze !!!
     const { count } = reduxState
     const { surname } = props
 
     function onClick() {
-        const { name, age } = state // Правильно, всегда актуальные
+        const { name, age } = state // Right, always relevant
         const { count } = reduxState
         const { surname } = props
     }
 ...
 ```
 
-Использовать обычные хуки в конструкторе без обёртки `inRender` запрещено.
+It is forbidden to use regular hooks in the constructor without the `inRender` wrapper.
 
-Так как "конструктор" вызывается один раз, то вызов обычных хуков в нём не будет повторяться в рендере, что приведёт к поломке работы хуков и падению приложения.
+Since the "constructor" is called once, the call of the usual hooks in it will not be repeated in the render, which will cause the hooks to break and the application to crash.
 
-Содержимое `inRender` вызывается каждый рендер, что обеспечивает правильную работу хуков.
+The contents of `inRender` are called every render, which ensures that the hooks work correctly.
 
-_Примечание:_ Ипользуйте `inRender` лишь тогда, когда нет другого варианта.
+_Note:_ Use `inRender` only when there is no other way.
 
 ```ts
 import { inRender, createState } from 'react-afc'
@@ -264,30 +264,31 @@ import { useEffect } from 'react'
 ...
     const [state, setState] = createState({...})
 
-    useEffect(...) // Ошибка !!!
+    useEffect(...) // Error !!!
 
     inRender(() => {
-        useEffect(...) // Правильно
+        useEffect(...) // Right
     })
 ...
 ```
 
-## Справка по API
+## API
 
-### default import
+### afc/afcMemo
 
 ```ts
-export default advancedComponent<P>((props: P) => React.FC): React.FC<P>
+export default afc<P>((props: P) => React.FC): React.FC<P>
+export default afcMemo<P>((props: P) => React.FC): React.MemoExoticComponent<React.FC<P>>
 ```
 
-Принимает _функцию-конструктор_, которая должна вернуть обычную _функцию-компонент_.
+Accepts a _constructor function_, which should return the usual _component function_.
 
-Возвращает обёрнутый компонент. Не является `HOK`.
+Returns the wrapped component. Not add a new node to the virtual DOM.
 
 ```ts
-import advancedComponent from 'react-afc'
+import { afc } from 'react-afc'
 
-const Component = advancedComponent(props => {
+const Component = afc(props => {
     ...
     return () => ReactNode
 })
@@ -299,11 +300,11 @@ const Component = advancedComponent(props => {
 export function afterUnmount(callback: () => void): void
 ```
 
-Принимает функцию без аргументов.
+Accepts a function without arguments.
 
-Вызывает её когда компонент был демонтирован.
+Calls it when the component was unmounted.
 
-_То же самое что и `useEffect(() => ..., [])`_
+_The same as `useEffect(() => () => ..., [])`_
 
 ```ts
 import { afterUnmount } from 'react-afc'
@@ -321,11 +322,13 @@ import { afterUnmount } from 'react-afc'
 export function createState<S>(initial: S): [S, (newState: Partial<S>) => void]
 ```
 
-Принимает объект состояния.
+Accepts a status object.
 
-Возвращает массив `[state, stateSetter]`.
+Returns the array `[state, stateSetter]`.
 
-`stateSetter` принимает частичный или полный объект нового состояния. Объединяет старый и новый объект (аналогично классовому `this.setState`)
+The `stateSetter` accepts a partial or complete object of the new state. Combines old and new object (similar to class `this.setState`).
+
+_Has a superficial comparison of objects_.
 
 ```ts
 import { createState } from 'react-afc'
@@ -337,7 +340,7 @@ import { createState } from 'react-afc'
     })
 
     function onChange() {
-        setState({ age: 20 }) // State = { name: 'Boris', age: 20 }
+        setState({ age: 20 }) // State: { name: 'Boris', age: 20 }
     }
 ...
 ```
@@ -348,9 +351,9 @@ import { createState } from 'react-afc'
 export function inRender(callback: () => void): void
 ```
 
-Принимает функцию без аргументов.
+Accepts a function without arguments.
 
-Вызывает её сразу и перед каждым рендером.
+Calls it immediately and before each render.
 
 ```ts
 import { inRender } from 'react-afc'
@@ -369,9 +372,9 @@ import { inRender } from 'react-afc'
 export function handleContext<T>(context: React.Context<T>): () => T
 ```
 
-Принимает объект контекста.
+Accepts a context object.
 
-Подписывается на изменения контекста и возвращает `contextGetter`.
+Subscribes to context changes and returns `contextGetter`.
 
 ```ts
 import { handleContext } from 'react-afc'
@@ -395,9 +398,9 @@ export function useRedux<T>(config: T): {
 }
 ```
 
-Принимает конфиг-объект вида `{ ключ: селектор }`.
+Accepts a config object of the form `{ key: selector }`.
 
-Подписывается на изменение стора и возвращает объект вида `{ ключ: значение_по_селектору }`.
+Subscribes to the change of the store and returns an object of the form `{ key: value_to_the_selector }`.
 
 ```ts
 import { useRedux } from 'react-afc'
@@ -423,9 +426,9 @@ import type RootState from './state'
 export function getDispatcher<T extends Dispatch<AnyAction>>(): T
 ```
 
-Ничего не принимает.
+Doesn't accept anything.
 
-Возвращает `redux dispatch`.
+Returns **redux dispatch**.
 
 ```ts
 import { getDispatcher } from 'react-afc'

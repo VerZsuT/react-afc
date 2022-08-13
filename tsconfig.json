@@ -10,7 +10,6 @@
       "sourceMap": false,
       "outDir": "lib",
       "newLine": "LF",
-      "emitDeclarationOnly": true,
       "declaration": true,
       "moduleResolution": "node",
       "baseUrl": ".",
@@ -22,4 +21,3 @@
     ],
     "exclude": ["node_modules"]
   }
-  

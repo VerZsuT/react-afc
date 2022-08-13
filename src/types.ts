@@ -1,4 +1,3 @@
-export type FuncToInsert = () => void
 export type RenderFunc = () => JSX.Element
 
 export type Constructor<P> = (props: P) => RenderFunc

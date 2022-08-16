@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Allows you to use class advantages without additional crutches",
   "keywords": [
     "react",
@@ -31,9 +31,9 @@
   "devDependencies": {
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
-    "@typescript-eslint/eslint-plugin": "^5.33.0",
-    "@typescript-eslint/parser": "^5.33.0",
-    "eslint": "^8.21.0",
+    "@typescript-eslint/eslint-plugin": "^5.33.1",
+    "@typescript-eslint/parser": "^5.33.1",
+    "eslint": "^8.22.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-react": "^7.30.1",
     "typescript": "^4.7.4"

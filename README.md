@@ -35,11 +35,12 @@ Each render uses one `useRef` hook, and the `prop` variable is also updated (whi
 Calling the following methods adds logic that is used during **each render**:
 
 - `createState` adds one `useState` call
-- `useRedux` add `useSelector` calls depending on the passed object (one key - one hook call)
+- `useRedux` adds `useSelector` calls depending on the passed object (one key - one hook call)
 - `afterUnmount`/`afterMount`/`afterDraw` adds one `useEffect` call with the passed callback
 - `inRender` adds a call the passed callback (performance directly depends on the actions in it)
 - `handleContext` adds one `useContext` call
 - `getDispatcher` adds one `useDispatch` call
+- `memoized` adds one `useMemo` call
 
 Each of the methods can be called an **unlimited** number of times, but only within the constructor and in functions called from it.
 
@@ -286,7 +287,7 @@ Accepts a _constructor function_, which should return the usual _component funct
 Returns the wrapped component. Not add a new node to the virtual DOM.
 
 ```tsx
-import { afc } from 'react-afc'
+import {afc} from 'react-afc'
 
 const Component = afc(props => {
     // ...
@@ -304,10 +305,10 @@ Accepts a function without arguments.
 
 Calls it when the component was unmounted.
 
-_The same as `useEffect(() => () => ..., [])`_
+_The same as `useEffect(() => callback, [])`_
 
 ```ts
-import { afterUnmount } from 'react-afc'
+import {afterUnmount} from 'react-afc'
 
 // ...
     afterUnmount(() => {
@@ -326,10 +327,10 @@ Accepts a function without arguments.
 
 Calls it when the component was mounted.
 
-_The same as `useEffect(() => ..., [])`_
+_The same as `useEffect(callback, [])`_
 
 ```ts
-import { afterMount } from 'react-afc'
+import {afterMount} from 'react-afc'
 
 // ...
     afterMount(() => {
@@ -351,12 +352,39 @@ Calls it when the component was drawn.
 _The same as `useLayoutEffect(() => ..., [])`_
 
 ```ts
-import { afterDraw } from 'react-afc'
+import {afterDraw} from 'react-afc'
 
 // ...
     afterDraw(() => {
         document.addEventListener(/*...*/)
     })
+// ...
+```
+
+### memoized
+
+```ts
+export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T
+```
+
+Creates a memoized value getter
+
+```tsx
+import {memoized, createState} from 'react-afc'
+
+// ...
+    const [state, setState] = createState({
+        count: 0,
+        mult: 0
+    })
+    const getResult = memoized(
+        () => ({ result: count * mult }),
+        () => [state.count, state.mult]
+    )
+
+    return () => (
+        <Component result={getResult()} />
+    )
 // ...
 ```
 
@@ -375,7 +403,7 @@ The `stateSetter` accepts a partial or complete object of the new state. Combine
 _Has a superficial comparison of objects_.
 
 ```ts
-import { createState } from 'react-afc'
+import {createState} from 'react-afc'
 
 // ...
     const [state, setState] = createState({
@@ -400,7 +428,7 @@ Accepts a function without arguments.
 Calls it immediately and before each render.
 
 ```ts
-import { inRender } from 'react-afc'
+import {inRender} from 'react-afc'
 
 // ...
     inRender(() => {
@@ -421,8 +449,8 @@ Accepts a context object.
 Subscribes to context changes and returns `contextGetter`.
 
 ```ts
-import { handleContext } from 'react-afc'
-import NameContext from './NameContext'
+import {handleContext} from 'react-afc'
+import {NameContext} from './NameContext'
 
 // ...
     const getContext = handleContext(NameContext)
@@ -447,9 +475,9 @@ Accepts a config object of the form `{ key: selector }`.
 Subscribes to the change of the store and returns an object of the form `{ key: value_to_the_selector }`.
 
 ```ts
-import { useRedux } from 'react-afc'
-import { selectName, selectAge } from './personSlice'
-import type RootState from './state'
+import {useRedux} from 'react-afc'
+import {selectName, selectAge} from './personSlice'
+import type {RootState} from './state'
 
 // ...
     const reduxState = useRedux({
@@ -475,9 +503,9 @@ Doesn't accept anything.
 Returns **redux dispatch**.
 
 ```ts
-import { getDispatcher } from 'react-afc'
-import { changeName, changeAge } from './personSlice'
-import type { AppDispatch } from './state'
+import {getDispatcher} from 'react-afc'
+import {changeName, changeAge} from './personSlice'
+import type {AppDispatch} from './state'
 
 // ...
     const dispatch = getDispatcher<AppDispatch>()

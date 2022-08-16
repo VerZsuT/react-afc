@@ -1,4 +1,4 @@
-import { memo, useContext, useEffect, useRef, useState, useLayoutEffect } from 'react'
+import { memo, useContext, useEffect, useRef, useState, useLayoutEffect, useMemo } from 'react'
 import type { Context, FC } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
@@ -8,6 +8,9 @@ import type { Constructor, Data, UseReduxConfig } from './types'
 
 let currentData: Data<any> = null
 
+/**
+ * Returns a component with constructor functionality
+ */
 export function afc<P extends {}>(constructor: Constructor<P>): FC<P> {
     return (props: P) => {
         const data = useData<P>()
@@ -22,15 +25,38 @@ export function afc<P extends {}>(constructor: Constructor<P>): FC<P> {
     }
 }
 
+/**
+ * Returns a memo component with constructor functionality
+ */
 export function afcMemo<P extends {}>(constructor: Constructor<P>) {
     return memo(afc(constructor))
 }
 
+/**
+ * Returns the getter of the memoized value
+ */
+export function memoized<T>(factory: () => T, depsGetter: () => any[]) {
+    checkOutsideCall('memoized')
+    let value: T
+    callAndAddToRender(() => {
+        value = useMemo<T>(factory, depsGetter())
+    })
+
+    return () => value
+}
+
+/**
+ * Returns redux-dispatcher
+ */
 export function getDispatcher<T extends Dispatch<AnyAction>>(): T {
     checkOutsideCall('getDispatcher')
     return callAndAddToRender<T>(useDispatch)
 }
 
+/**
+ * Subscribes to context changes
+ * @returns context getter
+ */
 export function handleContext<T>(context: Context<T>): () => T {
     checkOutsideCall('handleContext')
     let contextValue = useContext(context)
@@ -40,6 +66,11 @@ export function handleContext<T>(context: Context<T>): () => T {
     return () => contextValue
 }
 
+/**
+ * Calls the function after unmounting the component
+ *
+ * _Analog of `useEffect(() => callback, [])`_
+ */
 export function afterUnmount(callback: () => void): void {
     checkOutsideCall('afterUnmount')
     callAndAddToRender(() => {
@@ -47,6 +78,11 @@ export function afterUnmount(callback: () => void): void {
     })
 }
 
+/**
+ * Calls the function after mounting the component
+ *
+ * _Analog of `useEffect(callback, [])`_
+ */
 export function afterMount(callback: () => void): void {
     checkOutsideCall('afterMount')
     callAndAddToRender(() => {
@@ -54,6 +90,11 @@ export function afterMount(callback: () => void): void {
     })
 }
 
+/**
+ * Calls the function after drawing the component
+ *
+ _Analog of `useLayoutEffect(callback, [])`_
+ */
 export function afterDraw(callback: () => void): void {
     checkOutsideCall('afterDraw')
     callAndAddToRender(() => {
@@ -61,17 +102,30 @@ export function afterDraw(callback: () => void): void {
     })
 }
 
+/**
+ * Creates a state
+ *
+ * _Before applying the state changes, superficially compares the previous and new state_
+ * @returns - [state, stateGetter]
+ */
 export function createState<T>(initial: T) {
     checkOutsideCall('createState')
     addToRender(() => useState(null))
     return prepareState(initial)
 }
 
+/**
+ * Calls the function immediately and before each render
+ */
 export function inRender(callback: () => void): void {
     checkOutsideCall('inRender')
     callAndAddToRender(callback)
 }
 
+/**
+ * Subscribes to redux-store changes and gets values depending on the passed configuration
+ * @param config - object of the type `{key: selector}`
+ */
 export function useRedux<T extends UseReduxConfig<any>>(config: T): {
     [key in keyof typeof config]: ReturnType<typeof config[key]>
 } {

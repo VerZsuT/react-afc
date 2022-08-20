@@ -30,7 +30,7 @@ export function afc<P extends {}>(constructor: Constructor<P>): FC<P> {
             ref.current = data = {
                 beforeRender() {
                     const prevData = currentData
-                    data.beforeRender = null
+                    data.beforeRender = () => null
                     currentData = data
                     data.render = constructor(data.props)
                     currentData = prevData
@@ -162,7 +162,7 @@ export function useRedux<T extends UseReduxConfig<any>>(config: T): {
 function addToRender(callback: () => void): void {
     const prev = currentData.beforeRender
     currentData.beforeRender = () => {
-        prev?.()
+        prev()
         callback()
     }
 }

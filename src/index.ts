@@ -4,24 +4,29 @@ import type {Context, FC} from 'react'
 import {useDispatch, useSelector} from 'react-redux'
 import type {AnyAction, Dispatch} from 'redux'
 
-import type {Constructor, Data, UseReduxConfig} from './types'
+import type {
+    Actions,
+    Constructor,
+    StateReturns,
+    UseReduxConfig,
+    Data, StateSetters
+} from './types'
 
 let currentData: Data<any> = {
     set beforeRender(_) {
-        throw new Error('Attempt to outside call constructor\'s method')
+        throw new Error('Attempt to outside call react-afc constructor\'s method')
     },
     get beforeRender(): () => void {
-        throw new Error('Attempt to outside call constructor\'s method')
+        throw new Error('Attempt to outside call react-afc constructor\'s method')
     },
     render: null,
     props: {}
 }
 
-
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P extends {}>(constructor: Constructor<P>): FC<P> {
+export function afc<P extends {} = {}>(constructor: Constructor<P>): FC<P> {
     return (props: P) => {
         const ref = useRef<Data<P>>()
         let data = ref.current
@@ -41,10 +46,9 @@ export function afc<P extends {}>(constructor: Constructor<P>): FC<P> {
         }
 
         for (const key in data.props) {
-            if (!Object.hasOwn(props, key))
+            if (!(key in props))
                 delete data.props[key]
         }
-
         for (const key in props)
             data.props[key] = props[key]
 
@@ -56,14 +60,14 @@ export function afc<P extends {}>(constructor: Constructor<P>): FC<P> {
 /**
  * Returns a memo component with constructor functionality
  */
-export function afcMemo<P extends {}>(constructor: Constructor<P>) {
+export function afcMemo<P extends {} = {}>(constructor: Constructor<P>) {
     return memo(afc(constructor))
 }
 
 /**
  * Returns the getter of the memoized value
  */
-export function memoized<T>(factory: () => T, depsGetter: () => any[]) {
+export function memoized<T = undefined>(factory: () => T, depsGetter: () => any[]) {
     let value: T
     addToRenderAndCall(() => {
         value = useMemo<T>(factory, depsGetter())
@@ -75,15 +79,28 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]) {
 /**
  * Returns redux-dispatcher
  */
-export function getDispatcher<T extends Dispatch<AnyAction>>(): T {
+export function getDispatcher<T extends Dispatch<AnyAction> = Dispatch<AnyAction>>(): T {
     return addToRenderAndCall<T>(useDispatch)
+}
+
+/**
+ * Returns wrapped redux actions to use it without dispatcher
+ */
+export function useActions<T extends Actions = {}>(actions: T): T {
+    const dispatch = getDispatcher()
+    const obj = <T>{}
+    for (const name in actions) {
+        type objItem = typeof actions[typeof name]
+        obj[name] = <objItem>((arg: any) => dispatch(actions[name](arg)))
+    }
+    return obj
 }
 
 /**
  * Subscribes to context changes
  * @returns context getter
  */
-export function handleContext<T>(context: Context<T>): () => T {
+export function handleContext<T = undefined>(context: Context<T>): () => T {
     let contextValue = useContext(context)
     addToRender(() => {
         contextValue = useContext(context)
@@ -128,11 +145,23 @@ export function afterDraw(callback: () => void): void {
  * Creates a state
  *
  * _Before applying the state changes, superficially compares the previous and new state_
- * @returns - [state, stateGetter]
+ * @returns - {state, set<Key>}
  */
-export function createState<T>(initial: T) {
-    addToRender(() => useState(null))
-    return prepareState(initial)
+export function createState<T extends {} = {}>(initial: T): StateReturns<T> {
+    const state = {...initial}
+    const setState = addToRenderAndCall(() => useState<{}>()[1])
+    const setters = <StateSetters<T>>{}
+
+    for (const name in initial) {
+        const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
+        setters[setterName] = (value: any) => {
+            if (state[name] === value) return
+            state[name] = value
+            setState({})
+        }
+    }
+
+    return {state, ...setters}
 }
 
 /**
@@ -146,10 +175,8 @@ export function inRender(callback: () => void): void {
  * Subscribes to redux-store changes and gets values depending on the passed configuration
  * @param config - object of the type `{key: selector}`
  */
-export function useRedux<T extends UseReduxConfig<any>>(config: T): {
-    [key in keyof typeof config]: ReturnType<typeof config[key]>
-} {
-    const state: any = {}
+export function useRedux<S extends {} = {}, T extends UseReduxConfig<S> = {}>(config: T) {
+    const state = {} as { [key in keyof T]: ReturnType<T[key]> }
 
     addToRenderAndCall(() => {
         for (const name in config)
@@ -167,26 +194,7 @@ function addToRender(callback: () => void): void {
     }
 }
 
-function addToRenderAndCall<T>(callback: () => T): T {
+function addToRenderAndCall<T = undefined>(callback: () => T): T {
     addToRender(callback)
     return callback()
-}
-
-function prepareState<T extends {}>(initial: T): [T, (partialState: Partial<T>) => void] {
-    const state = {...initial}
-    const setState = useState<{}>()[1]
-
-    return [
-        state,
-        partialState => {
-            for (const name in partialState) {
-                if (state[name] !== partialState[name]) {
-                    for (const key in partialState)
-                        state[key] = partialState[key]
-                    setState({})
-                    break
-                }
-            }
-        }
-    ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Allows you to significantly simplify the optimization of functional react components",
   "keywords": [
     "react",
@@ -12,8 +12,8 @@
     "type": "git",
     "url": "https://github.com/VerZsuT/react-afc.git"
   },
-  "main": "./lib/index.mjs",
-  "typings": "./lib/index.d.mts",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
   "files": [
     "./lib"
   ],

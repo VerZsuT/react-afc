@@ -6,14 +6,11 @@ without additional add-ons.
 Allows you to simplify optimization.
 
 # Table of contents
-
 - [Installation](#installation)
 - [When to use](#when-to-use)
 - [Why](#why)
 - [What gives](#what-gives)
 - [Performance](#performance)
-
-
 - [Example](#example)
 - [Component structure](#component-structure)
 - [State management](#state-management)
@@ -51,7 +48,8 @@ In order not to write unnecessary `useMemo`, `useCallback` and `useRef`.
 
 ## What gives
 
-Allows you to reduce the number of hook calls (which affects both readability and optimization), and also not to worry about an array of dependencies.
+Allows you to reduce the number of hook calls (which affects both readability and optimization),
+and also not to worry about an array of dependencies.
 
 ## Performance
 
@@ -60,7 +58,7 @@ The library is optimized as much as possible.
 `afcMemo` returns the `memo`-component
 `afc` returns a regular component
 
-Each render uses one `useRef` hook, and the `prop` variable is also updated (which takes about 0.01ms).
+Each render uses one `useRef` hook, and the `prop` variable is also updated (excluding the first render).
 
 Calling the following methods adds logic that is used during **each render**:
 
@@ -72,7 +70,11 @@ Calling the following methods adds logic that is used during **each render**:
 - `getDispatcher`/`useActions` adds one `useDispatch` call
 - `memoized` adds one `useMemo` call
 
-Each of the methods can be called an **unlimited** number of times, but only within the constructor and in functions called from it.
+_Note:_ `createState`/`getDispatcher`/`useActions`/`afterUnmount`/`afterMount`/`afterDraw`
+adds one hook call regardless of the number of its calls
+
+Each of the methods can be called an **unlimited** number of times, but only within the constructor
+and in functions called from it.
 
 ## Example
 
@@ -93,11 +95,7 @@ export default afcMemo<Props>(props => {
     const reduxState = useRedux({
         name: selectName
     })
-    const {
-        state,
-        setMultiplier,
-        setNumber
-    } = createState({
+    const { state, setMultiplier, setNumber } = createState({
         multiplier: "2",
         number: "5"
     })
@@ -162,21 +160,16 @@ To work with the state, import `createState`
 ```ts
 import {createState} from 'react-afc'
 
-// ...
-    const {
-        state,
-        setAuthor,
-        setName
-        // set<Key>
-    } = createState({
+//...//
+    const { state, setAuthor, setName /* set<Key> */ } = createState({
         author: 'VerZsuT',
         name: 'react-afc'
         // key: value
     })
-// ...
+//...//
 ```
 
-To work with **Redux** use `useRedux` and `getDispatcher` or `useActions`
+To work with **Redux** use `useRedux` and `getDispatcher`/`useActions`
 
 ```ts
 import {useRedux, getDispatcher, useActions} from 'react-afc'
@@ -184,7 +177,7 @@ import type {Store, AppDispatch} from './store'
 import {actions} from './store'
 import {changeCount, selectCount} from './countSlice'
 
-// ...
+//...//
     const reduxState = useRedux({
         name: (store: Store) => store.name.current,
         count: selectCount
@@ -205,7 +198,7 @@ import {changeCount, selectCount} from './countSlice'
     function onDelCount() {
         delCount()
     }
-// ...
+//...//
 ```
 
 ## Working with Context
@@ -218,13 +211,13 @@ _Returns the context **getter**, not the context itself_.
 import {handleContext} from 'react-afc'
 import CountContext from './CountContext'
 
-// ...
+//...//
     const getCount = handleContext(CountContext)
 
     function calculate() {
         return getCount() * 5
     }
-// ...
+//...//
 ```
 
 ## Using regular hooks in the body of the "constructor"
@@ -232,12 +225,12 @@ import CountContext from './CountContext'
 ```ts
 import {inRender} from 'react-afc'
 
-// ...
+//...//
     let exampleVar: string;
     inRender(() => {
         exampleVar = commonHook()
     })
-// ...
+//...//
 ```
 
 `inRender` is called immediately and before each render (so as not to break hooks)
@@ -245,13 +238,13 @@ import {inRender} from 'react-afc'
 ```ts
 import {inRender} from 'react-afc'
 
-// ...
+//...//
     console.log('Constructor start')
     inRender(() => {
         console.log('inRender')
     })
     console.log('After inRender')
-// ...
+//...//
 ```
 
 In this example, the console output will be:
@@ -280,25 +273,22 @@ interface Props {
     age: number
 }
 
-// Error !!!
+                              // Error !!!
 const Component = afc<Props>(({ name, age }) => { /*...*/ })
 ```
 
 Unpacking `state`, `props` or `reduxState` directly in the constructor body will **freeze** these variables:
 `name`, `age` and `surname` will not change between renders.
 
+_The exclusion is the case when the received fields do not change during the life of the component_  
 _Unpacking in **render function** or handlers does not have such a problem_
 
 ```ts
 import {createState, useRedux} from 'react-afc'
 import type {RootState} from './state'
 
-// ...
-    const {
-        state,
-        setName,
-        setAge
-    } = createState({
+//...//
+    const { state, setName, setAge } = createState({
         name: 'Aleksandr',
         age: 20
     })
@@ -314,7 +304,7 @@ import type {RootState} from './state'
         const { count } = reduxState
         const { surname } = props
     }
-// ...
+//...//
 ```
 
 It is forbidden to use regular hooks in the constructor without the `inRender` wrapper.
@@ -329,7 +319,7 @@ _Note:_ Use `inRender` only when there is no other way.
 import {inRender} from 'react-afc'
 import {useEffect} from 'react'
 
-// ...
+//...//
     // Constructor
 
     useEffect(/*...*/) // Error !!!
@@ -337,7 +327,7 @@ import {useEffect} from 'react'
     inRender(() => {
         useEffect(/*...*/) // Right
     })
-// ...
+//...//
 ```
 
 ## API
@@ -357,7 +347,7 @@ Returns the wrapped component. Not add an extra node to the virtual DOM.
 import {afc} from 'react-afc'
 
 const Component = afc(props => {
-    // ...
+    // constructor logic
     return () => <div>any content</div>
 })
 ```
@@ -377,11 +367,11 @@ _The same as `useEffect(() => callback, [])`_
 ```ts
 import {afterUnmount} from 'react-afc'
 
-// ...
+//...//
     afterUnmount(() => {
         document.removeEventListener(/*...*/)
     })
-// ...
+//...//
 ```
 
 ### afterMount
@@ -399,11 +389,11 @@ _The same as `useEffect(callback, [])`_
 ```ts
 import {afterMount} from 'react-afc'
 
-// ...
+//...//
     afterMount(() => {
         document.addEventListener(/*...*/)
     })
-// ...
+//...//
 ```
 
 ### afterDraw
@@ -416,16 +406,16 @@ Accepts a function without arguments.
 
 Calls it when the component was drawn.
 
-_The same as `useLayoutEffect(() => ..., [])`_
+_The same as `useLayoutEffect(() => {...}, [])`_
 
 ```ts
 import {afterDraw} from 'react-afc'
 
-// ...
+//...//
     afterDraw(() => {
         document.addEventListener(/*...*/)
     })
-// ...
+//...//
 ```
 
 ### memoized
@@ -439,7 +429,7 @@ Creates a memoized value getter
 ```tsx
 import {memoized, createState} from 'react-afc'
 
-// ...
+//...//
     const { state, setCount, setMult } = createState({
         count: 0,
         mult: 0
@@ -452,7 +442,7 @@ import {memoized, createState} from 'react-afc'
     return () => (
         <Component result={getResult()} />
     )
-// ...
+//...//
 ```
 
 ### createState
@@ -470,12 +460,8 @@ _Has a superficial comparison of objects_.
 ```ts
 import {createState} from 'react-afc'
 
-// ...
-    const {
-        state,
-        setName,
-        setAge
-    } = createState({
+//...//
+    const { state, setName, setAge } = createState({
         name: 'Boris',
         age: 30
     })
@@ -483,7 +469,7 @@ import {createState} from 'react-afc'
     function onChange() {
         setAge(20) // State: { name: 'Boris', age: 20 }
     }
-// ...
+//...//
 ```
 
 ### inRender
@@ -499,12 +485,12 @@ Calls it immediately and before each render.
 ```ts
 import {inRender} from 'react-afc'
 
-// ...
+//...//
     inRender(() => {
         useEffect(/*...*/)
         anyCommonHook()
     })
-// ...
+//...//
 ```
 
 ### handleContext
@@ -521,14 +507,14 @@ Subscribes to context changes and returns `contextGetter`.
 import {handleContext} from 'react-afc'
 import {NameContext} from './NameContext'
 
-// ...
+//...//
     const getContext = handleContext(NameContext)
 
     function greet() {
         const name = getContext()
         return `Hi, ${name}!`
     }
-// ...
+//...//
 ```
 
 ### useRedux
@@ -548,7 +534,7 @@ import {useRedux} from 'react-afc'
 import {selectName, selectAge} from './personSlice'
 import type {RootState} from './state'
 
-// ...
+//...//
     const reduxState = useRedux({
         name: selectName,
         age: selectAge,
@@ -558,7 +544,7 @@ import type {RootState} from './state'
     function func() {
         const { name, age, count } = reduxState
     }
-// ...
+//...//
 ```
 
 ### getDispatcher

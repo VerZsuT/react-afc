@@ -1,7 +1,7 @@
 import type {FC} from 'react'
 import {useRef} from 'react'
 
-import {data} from '../lib'
+import {setData, resetData} from '../lib'
 import type {Constructor, Data} from '../types'
 
 /**
@@ -22,10 +22,9 @@ export function afc<P extends {} = {}>(constructor: Constructor<P>): FC<P> {
                 dataProps[key] = props[key]
 
             refData.beforeRender()
-            return refData.render?.()
+            return refData.render()
         }
 
-        const prevData = data.current
         refData = ref.current = {
             beforeRender: () => null,
             events: {},
@@ -33,9 +32,9 @@ export function afc<P extends {} = {}>(constructor: Constructor<P>): FC<P> {
             props: {...props}
         }
 
-        data.current = refData
+        setData(refData)
         refData.render = constructor(refData.props)
-        data.current = prevData
-        return refData.render?.()
+        resetData()
+        return refData.render()
     }
 }

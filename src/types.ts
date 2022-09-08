@@ -5,10 +5,11 @@ export type Constructor<P> = (props: P) => RenderFunc
 export type AFC<P> = Constructor<P>
 export type Action = (arg: any) => any
 export type Selector<T> = (state: T) => any
+export type Ref<T> = { value: T }
 
 export interface Data<P> {
     beforeRender(): void
-    stateSetter?(value: {}): void
+    forceUpdate?(): void
     dispatch?: Dispatch<AnyAction>
     events: {
         afterMount?(): void

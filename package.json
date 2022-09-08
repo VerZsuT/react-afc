@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Allows you to significantly simplify the optimization of functional react components",
   "keywords": [
     "react",
@@ -14,9 +14,13 @@
   },
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
-  "files": [
-    "./lib"
-  ],
+  "files": ["./lib"],
+  "exports": {
+    ".": "./lib/index.js",
+    "./lib": "./lib/lib.js",
+    "./types": "./lib/types.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "compile": "tsc"
   },

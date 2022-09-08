@@ -1,14 +1,15 @@
 # React Advanced Function Component
 
-Allows you to use class advantages in functional components
-without additional add-ons.
+Allows you to **use class advantages** in functional components without additional add-ons.
 
-Allows you to simplify optimization.
+Allows you to **simplify optimization**.
 
 # Table of contents
+
+**About the package**
 - [Installation](#installation)
-- [When to use](#when-to-use)
 - [Why](#why)
+- [When to use](#when-to-use)
 - [What gives](#what-gives)
 - [Performance](#performance)
 - [Example](#example)
@@ -19,17 +20,29 @@ Allows you to simplify optimization.
 - [Common errors](#common-errors)
 
 **API**
+
+Component
 - [afc](#afcafcmemo)
 - [afcMemo](#afcafcmemo)
-- [afterUnmount](#afterunmount)
+
+Lifecycle
 - [afterMount](#aftermount)
+- [afterUnmount](#afterunmount)
 - [afterDraw](#afterdraw)
-- [memoized](#memoized)
+
+State
 - [createState](#createstate)
+- [reactive](#reactive)
+- [ref](#ref)
 - [handleContext](#handlecontext)
+
+Redux
 - [useRedux](#useredux)
 - [useActions](#useactions)
 - [getDispatcher](#getdispatcher)
+
+Other
+- [memoized](#memoized)
 - [inRender](#inrender)
 
 ## Installation
@@ -62,15 +75,15 @@ Each render uses one `useRef` hook, and the `prop` variable is also updated (exc
 
 Calling the following methods adds logic that is used during **each render**:
 
-- `createState` adds one `useState` call
+- `createState`, `reactive`, `ref` adds one **useState** call
 - `useRedux` adds `useSelector` calls depending on the passed object (one key - one hook call)
-- `afterUnmount`/`afterMount`/`afterDraw` adds one `useEffect` call with the passed callback
+- `afterUnmount`, `afterMount`, `afterDraw` adds one **useEffect** call with the passed callback
 - `inRender` adds a call the passed callback (performance directly depends on the actions in it)
-- `handleContext` adds one `useContext` call
-- `getDispatcher`/`useActions` adds one `useDispatch` call
-- `memoized` adds one `useMemo` call
+- `handleContext` adds one **useContext** call
+- `getDispatcher`, `useActions` adds one **useDispatch** call
+- `memoized` adds one **useMemo** call
 
-_Note:_ `createState`/`getDispatcher`/`useActions`/`afterUnmount`/`afterMount`/`afterDraw`
+_Note:_ `createState`, `reactive`, `ref`, `getDispatcher`, `useActions`, `afterUnmount`, `afterMount`, `afterDraw`
 adds one hook call regardless of the number of its calls
 
 Each of the methods can be called an **unlimited** number of times, but only within the constructor
@@ -82,7 +95,7 @@ _See the description below_.
 
 ```tsx
 import type {ChangeEvent} from 'react'
-import {createState, inRender, afcMemo, useActions, useRedux} from 'react-afc'
+import {reactive, inRender, afcMemo, useActions, useRedux} from 'react-afc'
 import {selectName, actions} from './store'
 
 interface Props {
@@ -90,22 +103,22 @@ interface Props {
 }
 
 export default afcMemo<Props>(props => {
-    const { changeName } = useActions(actions)
+    const {changeName} = useActions(actions)
     
     const reduxState = useRedux({
         name: selectName
     })
-    const { state, setMultiplier, setNumber } = createState({
+    const state = reactive({
         multiplier: "2",
         number: "5"
     })
 
     function onChangeMult(e: ChangeEvent<HTMLInputElement>) {
-        setMultiplier(e.currentTarget.value)
+        state.multiplier = e.currentTarget.value
     }
 
     function onChangeNumber(e: ChangeEvent<HTMLInputElement>) {
-        setNumber(e.currentTarget.value)
+        state.number = e.currentTarget.value
     }
     
     function onChangeName(e: ChangeEvent<HTMLInputElement>) {
@@ -117,8 +130,8 @@ export default afcMemo<Props>(props => {
     }
 
     return () => {
-        const { multiplier, number } = state
-        const { name } = reduxState
+        const {multiplier, number} = state
+        const {name} = reduxState
 
         return (
             <div>
@@ -155,17 +168,29 @@ const Component = afc(props => {
 
 ## State management
 
-To work with the state, import `createState`
+To work with the state, use `reactive`/`createState`/`ref`
 
 ```ts
-import {createState} from 'react-afc'
+import {createState, reactive, ref} from 'react-afc'
 
 //...//
-    const { state, setAuthor, setName /* set<Key> */ } = createState({
+    const {state, setAuthor, setName /* set<Key> */} = createState({
         author: 'VerZsuT',
         name: 'react-afc'
         // key: value
     })
+// OR //
+    const state = reactive({
+        value: 'react-afc'
+    })
+    function onInput(newVal: string) {
+        state.value = newVal
+    }
+// OR //
+    const count = ref(0)
+    function onInput(newVal: number) {
+        count.value = newVal
+    }
 //...//
 ```
 
@@ -184,7 +209,7 @@ import {changeCount, selectCount} from './countSlice'
         // key: selector
     })
     function greet() {
-        const { name } = reduxState
+        const {name} = reduxState
         return `Hi, ${name}!`
     }
 
@@ -194,7 +219,7 @@ import {changeCount, selectCount} from './countSlice'
     }
     
     // Alternative
-    const { delCount } = useActions(actions)
+    const {delCount} = useActions(actions)
     function onDelCount() {
         delCount()
     }
@@ -213,7 +238,6 @@ import CountContext from './CountContext'
 
 //...//
     const getCount = handleContext(CountContext)
-
     function calculate() {
         return getCount() * 5
     }
@@ -272,9 +296,8 @@ interface Props {
     name: string
     age: number
 }
-
                               // Error !!!
-const Component = afc<Props>(({ name, age }) => { /*...*/ })
+const Component = afc<Props>(({ name, age }) => {/*...*/})
 ```
 
 Unpacking `state`, `props` or `reduxState` directly in the constructor body will **freeze** these variables:
@@ -284,25 +307,25 @@ _The exclusion is the case when the received fields do not change during the lif
 _Unpacking in **render function** or handlers does not have such a problem_
 
 ```ts
-import {createState, useRedux} from 'react-afc'
+import {reactive, useRedux} from 'react-afc'
 import type {RootState} from './state'
 
 //...//
-    const { state, setName, setAge } = createState({
+    const state = reactive({
         name: 'Aleksandr',
         age: 20
     })
     const reduxState = useRedux({
         count: (state: RootState) => state.count.value
     })
-    const { name, age } = state // Error, freeze !!!
-    const { count } = reduxState
-    const { surname } = props
+    const {name, age} = state // Error, freeze !!!
+    const {count} = reduxState
+    const {surname} = props
 
     function onClick() {
-        const { name, age } = state // Right, always relevant
-        const { count } = reduxState
-        const { surname } = props
+        const {name, age} = state // Right, always relevant
+        const {count} = reduxState
+        const {surname} = props
     }
 //...//
 ```
@@ -321,7 +344,6 @@ import {useEffect} from 'react'
 
 //...//
     // Constructor
-
     useEffect(/*...*/) // Error !!!
 
     inRender(() => {
@@ -427,15 +449,15 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T
 Creates a memoized value getter
 
 ```tsx
-import {memoized, createState} from 'react-afc'
+import {memoized, reactive} from 'react-afc'
 
 //...//
-    const { state, setCount, setMult } = createState({
+    const state = reactive({
         count: 0,
         mult: 0
     })
     const getResult = memoized(
-        () => ({ result: count * mult }),
+        () => ({result: count * mult}),
         () => [state.count, state.mult]
     )
 
@@ -451,7 +473,7 @@ import {memoized, createState} from 'react-afc'
 export function createState<S>(initial: S): StateReturns<S>
 ```
 
-Accepts a status object.
+Accepts a state object.
 
 Returns the object `{ state, set<Key> }`.
 
@@ -461,13 +483,63 @@ _Has a superficial comparison of objects_.
 import {createState} from 'react-afc'
 
 //...//
-    const { state, setName, setAge } = createState({
+    const {state, setName, setAge} = createState({
         name: 'Boris',
         age: 30
     })
-
     function onChange() {
         setAge(20) // State: { name: 'Boris', age: 20 }
+    }
+//...//
+```
+
+### reactive
+
+```ts
+export function reactive<S>(initial: S): S
+```
+
+Accepts a state object.
+
+Returns a copy of the state object.  
+When it is changed, the component is updated.
+
+```ts
+import {reactive} from 'react-afc'
+
+//...//
+    const state = reactive({
+        count: 0
+    })
+    function onInput(value: number) {
+        state.count = value
+    }
+    function onButtonClick() {
+        state.count++
+    }
+//...//
+```
+
+### ref
+
+```ts
+export function ref<T>(initial: T): { value: T }
+```
+
+Accepts the initial state of the reactive reference.
+
+Returns a reactive reference.  
+When the value of the link changes, the component will be updated.
+
+```ts
+import {ref} from 'react-afc'
+
+//...//
+    const count = ref(0)
+    const text = ref<string>(null)
+    function onChange() {
+        count.value++
+        text.valie = 'example'
     }
 //...//
 ```
@@ -509,7 +581,6 @@ import {NameContext} from './NameContext'
 
 //...//
     const getContext = handleContext(NameContext)
-
     function greet() {
         const name = getContext()
         return `Hi, ${name}!`
@@ -540,9 +611,8 @@ import type {RootState} from './state'
         age: selectAge,
         count: (state: RootState) => state.count.value
     })
-
     function func() {
-        const { name, age, count } = reduxState
+        const {name, age, count} = reduxState
     }
 //...//
 ```
@@ -568,7 +638,6 @@ import type {AppDispatch} from './state'
     function onChangeName(value: string) {
         dispatch(changeName(value))
     }
-
     function onChangeAge(value: number) {
         dispatch(changeAge(value))
     }
@@ -590,7 +659,7 @@ import {useActions} from 'react-afc'
 import {actions} from './store'
 
 //...//
-    const { changeCount } = useActions(actions)
+    const {changeCount} = useActions(actions)
     function setCountToFive() {
         changeCount(5)
     }

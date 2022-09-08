@@ -1,6 +1,4 @@
-import {useState} from 'react'
-
-import {addToRenderAndCall, data} from '../lib'
+import {getForceUpdate} from '../lib'
 import type {StateReturns, StateSetters} from '../types'
 
 /**
@@ -10,15 +8,15 @@ import type {StateReturns, StateSetters} from '../types'
  * @returns - {state, set<Key>}
  */
 export function createState<T extends {} = {}>(initial: T): StateReturns<T> {
-    const state = {...initial}
-    const stateSetter = (data.current.stateSetter ??= addToRenderAndCall(useState)[1])
-
+    const forceUpdate = getForceUpdate()
     const setters = {} as StateSetters<T>
+    const state = {...initial}
+
     for (const name in initial) {
         setters[`set${name[0].toUpperCase()}${name.slice(1)}`] = (value: any) => {
             if (state[name] === value) return
             state[name] = value
-            stateSetter({})
+            forceUpdate()
         }
     }
 

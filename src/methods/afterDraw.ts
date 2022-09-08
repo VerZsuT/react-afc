@@ -1,6 +1,6 @@
 import {useLayoutEffect} from 'react'
 
-import {addToRenderAndCall, data} from '../lib'
+import {addToRenderAndCall, currentData} from '../lib'
 
 /**
  * Calls the function after drawing the component
@@ -8,7 +8,7 @@ import {addToRenderAndCall, data} from '../lib'
  _Analog of `useLayoutEffect(callback, [])`_
  */
 export function afterDraw(callback: () => void): void {
-    const events = data.current.events
+    const events = currentData.events
 
     if (events.afterDraw) {
         const prevHandler = events.afterDraw

@@ -1,6 +1,6 @@
 import {useEffect} from 'react'
 
-import {addToRenderAndCall, data} from '../lib'
+import {addToRenderAndCall, currentData} from '../lib'
 
 /**
  * Calls the function after unmounting the component
@@ -8,7 +8,7 @@ import {addToRenderAndCall, data} from '../lib'
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function afterUnmount(callback: () => void): void {
-    const events = data.current.events
+    const events = currentData.events
 
     if (events.afterUnmount) {
         const prevHandler = events.afterUnmount

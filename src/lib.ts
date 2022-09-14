@@ -1,7 +1,5 @@
 import { useState } from 'react'
 
-import { useDispatch } from 'react-redux'
-
 import type {Data} from './types'
 
 const initialData = <Data<{}>> {
@@ -13,9 +11,9 @@ const initialData = <Data<{}>> {
     },
     events: {},
     props: {},
-    dispatch: null,
-    forceUpdate: null,
-    render: null
+    dispatch: () => null,
+    forceUpdate: () => null,
+    render: () => null
 }
 
 export let currentData: Data<any> = initialData

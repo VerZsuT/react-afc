@@ -7,7 +7,7 @@ import type {StateReturns, StateSetters} from '../types'
  * _Before applying the state changes, superficially compares the previous and new state_
  * @returns - {state, set<Key>}
  */
-export function createState<T extends {} = {}>(initial: T): StateReturns<T> {
+export function createState<T extends { [key: string]: any }>(initial: T): StateReturns<T> {
     const forceUpdate = getForceUpdate()
     const setters = {} as StateSetters<T>
     const state = {...initial}

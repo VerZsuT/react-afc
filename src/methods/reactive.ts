@@ -1,6 +1,10 @@
 import {getForceUpdate} from '../lib'
 
-export function reactive<T extends {} = {}>(state: T): T {
+/**
+ * Returns reactive state.
+ * Changes to the state will cause the component to be updated.
+ */
+export function reactive<T extends { [key: string]: any }>(state: T): T {
     const forceUpdate = getForceUpdate()
     const value = {...state}
     const obj = {} as T

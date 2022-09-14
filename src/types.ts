@@ -1,10 +1,8 @@
 import type {AnyAction, Dispatch } from 'redux'
 
-export type RenderFunc = () => JSX.Element
+export type RenderFunc = () => JSX.Element | null | undefined
 export type Constructor<P> = (props: P) => RenderFunc
 export type AFC<P> = Constructor<P>
-export type Action = (arg: any) => any
-export type Selector<T> = (state: T) => any
 export type Ref<T> = { value: T }
 
 export interface Data<P> {
@@ -27,11 +25,3 @@ export type StateSetters<T> = {
 export type StateReturns<T> = {
     state: T
 } & StateSetters<T>
-
-export interface Actions {
-    [key: string]: Action
-}
-
-export interface UseReduxConfig<T> {
-    [key: string]: Selector<T>
-}

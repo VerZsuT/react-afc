@@ -1,11 +1,12 @@
-import type {Actions} from '../types'
-import {getDispatcher} from './getDispatcher'
+import {getDispatch} from './getDispatch'
 
 /**
  * Returns wrapped redux actions to use it without dispatcher
  */
-export function useActions<T extends Actions = {}>(actions: T): T {
-    const dispatch = getDispatcher()
+export function useActions
+    <T extends { [key: string]: (arg: any) => any }>
+(actions: T): T {
+    const dispatch = getDispatch()
     const obj = {} as T
 
     for (const name in actions)

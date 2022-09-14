@@ -3,11 +3,16 @@ import {useEffect} from 'react'
 import {addToRenderAndCall, currentData} from '../lib'
 
 /**
+ * @deprecated use `onMount` instead
+ */
+export const afterMount = onMount
+
+/**
  * Calls the function after mounting the component
  *
  * _Analog of `useEffect(callback, [])`_
  */
-export function afterMount(callback: () => void): void {
+export function onMount(callback: () => void): void {
     const events = currentData.events
 
     if (events.afterMount) {
@@ -21,6 +26,6 @@ export function afterMount(callback: () => void): void {
 
     events.afterMount = callback
     addToRenderAndCall(() => {
-        useEffect(events.afterMount, [])
+        useEffect(events.afterMount!, [])
     })
 }

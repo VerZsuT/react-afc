@@ -5,9 +5,9 @@ import {addToRenderAndCall, currentData} from '../lib'
 /**
  * Calls the function after drawing the component
  *
- _Analog of `useLayoutEffect(callback, [])`_
+ * _Analog of `useLayoutEffect(callback, [])`_
  */
-export function afterDraw(callback: () => void): void {
+export function onDraw(callback: () => void): void {
     const events = currentData.events
 
     if (events.afterDraw) {
@@ -21,6 +21,11 @@ export function afterDraw(callback: () => void): void {
 
     events.afterDraw = callback
     addToRenderAndCall(() => {
-        useLayoutEffect(events.afterDraw, [])
+        useLayoutEffect(events.afterDraw!, [])
     })
 }
+
+/**
+ * @deprecated use `onDraw` instead
+ */
+export const afterDraw = onDraw

@@ -1,13 +1,14 @@
 import {useSelector} from 'react-redux'
 
 import {addToRenderAndCall} from '../lib'
-import type {UseReduxConfig} from '../types'
 
 /**
  * Subscribes to redux-store changes and gets values depending on the passed configuration
  * @param config - object of the type `{key: selector}`
  */
-export function useRedux<S extends {} = {}, T extends UseReduxConfig<S> = {}>(config: T) {
+export function useRedux
+    <T extends { [key: string]: (state: any) => any }>
+(config: T) {
     const state = {} as { [key in keyof T]: ReturnType<T[key]> }
 
     addToRenderAndCall(() => {

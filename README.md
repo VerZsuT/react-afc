@@ -26,9 +26,10 @@ Component
 - [afcMemo](#afcafcmemo)
 
 Lifecycle
-- [afterMount](#aftermount)
-- [afterUnmount](#afterunmount)
-- [afterDraw](#afterdraw)
+- [onMount](#onmount)
+- [onDestroy](#ondestroy)
+- [onDraw](#ondraw)
+- [onRender](#onrender)
 
 State
 - [createState](#createstate)
@@ -39,11 +40,12 @@ State
 Redux
 - [useRedux](#useredux)
 - [useActions](#useactions)
-- [getDispatcher](#getdispatcher)
+- [getDispatch](#getdispatch)
 
 Other
 - [memoized](#memoized)
-- [inRender](#inrender)
+- [Injectable](#injectable)
+- [inject](#inject)
 
 ## Installation
 
@@ -77,13 +79,13 @@ Calling the following methods adds logic that is used during **each render**:
 
 - `createState`, `reactive`, `ref` adds one **useState** call
 - `useRedux` adds `useSelector` calls depending on the passed object (one key - one hook call)
-- `afterUnmount`, `afterMount`, `afterDraw` adds one **useEffect** call with the passed callback
-- `inRender` adds a call the passed callback (performance directly depends on the actions in it)
+- `onDestroy`, `onMount`, `onDraw` adds one **useEffect** call with the passed callback
+- `onRender` adds a call the passed callback (performance directly depends on the actions in it)
 - `handleContext` adds one **useContext** call
-- `getDispatcher`, `useActions` adds one **useDispatch** call
+- `getDispatch`, `useActions` adds one **useDispatch** call
 - `memoized` adds one **useMemo** call
 
-_Note:_ `createState`, `reactive`, `ref`, `getDispatcher`, `useActions`, `afterUnmount`, `afterMount`, `afterDraw`
+_Note:_ `createState`, `reactive`, `ref`, `getDispatch`, `useActions`, `onDestroy`, `onMount`, `onDraw`
 adds one hook call regardless of the number of its calls
 
 Each of the methods can be called an **unlimited** number of times, but only within the constructor
@@ -95,7 +97,7 @@ _See the description below_.
 
 ```tsx
 import type {ChangeEvent} from 'react'
-import {reactive, inRender, afcMemo, useActions, useRedux} from 'react-afc'
+import {reactive, afcMemo, useActions, useRedux} from 'react-afc'
 import {selectName, actions} from './store'
 
 interface Props {
@@ -179,12 +181,15 @@ import {createState, reactive, ref} from 'react-afc'
         name: 'react-afc'
         // key: value
     })
+    function onInput(newName: string) {
+        setName(newName)
+    }
 // OR //
-    const state = reactive({
+    const reactiveState = reactive({
         value: 'react-afc'
     })
     function onInput(newVal: string) {
-        state.value = newVal
+        reactiveState.value = newVal
     }
 // OR //
     const count = ref(0)
@@ -194,10 +199,10 @@ import {createState, reactive, ref} from 'react-afc'
 //...//
 ```
 
-To work with **Redux** use `useRedux` and `getDispatcher`/`useActions`
+To work with **Redux** use `useRedux` and `getDispatch`/`useActions`
 
 ```ts
-import {useRedux, getDispatcher, useActions} from 'react-afc'
+import {useRedux, getDispatch, useActions} from 'react-afc'
 import type {Store, AppDispatch} from './store'
 import {actions} from './store'
 import {changeCount, selectCount} from './countSlice'
@@ -213,7 +218,7 @@ import {changeCount, selectCount} from './countSlice'
         return `Hi, ${name}!`
     }
 
-    const dispatch = getDispatcher<AppDispatch>()
+    const dispatch = getDispatch<AppDispatch>()
     function onChange(value: number) {
         dispatch(changeCount(value))
     }
@@ -247,27 +252,27 @@ import CountContext from './CountContext'
 ## Using regular hooks in the body of the "constructor"
 
 ```ts
-import {inRender} from 'react-afc'
+import {onRender} from 'react-afc'
 
 //...//
     let exampleVar: string;
-    inRender(() => {
+    onRender(() => {
         exampleVar = commonHook()
     })
 //...//
 ```
 
-`inRender` is called immediately and before each render (so as not to break hooks)
+`onRender` is called immediately and before each render (so as not to break hooks)
 
 ```ts
-import {inRender} from 'react-afc'
+import {onRender} from 'react-afc'
 
 //...//
     console.log('Constructor start')
-    inRender(() => {
-        console.log('inRender')
+    onRender(() => {
+        console.log('onRender')
     })
-    console.log('After inRender')
+    console.log('After onRender')
 //...//
 ```
 
@@ -275,14 +280,14 @@ In this example, the console output will be:
 
 ```text
 Constructor start
-inRender
-After inRender
+onRender
+After onRender
 ```
 
 And before each next render it will be output to the console
 
 ```text
-inRender
+onRender
 ```
 
 ## Common errors
@@ -330,23 +335,24 @@ import type {RootState} from './state'
 //...//
 ```
 
-It is forbidden to use regular hooks in the constructor without the `inRender` wrapper.
+It is forbidden to use regular hooks in the constructor without the `onRender` wrapper.
 
-Since the "constructor" is called once, the call of the usual hooks in it will not be repeated in the render, which will cause the hooks to break and the application to crash.
+Since the "constructor" is called once, the call of the usual hooks in it will not be repeated in the render,
+which will cause the hooks to break and the application to crash.
 
-The contents of `inRender` are called every render, which ensures that the hooks work correctly.
+The contents of `onRender` are called every render, which ensures that the hooks work correctly.
 
-_Note:_ Use `inRender` only when there is no other way.
+_Note:_ Use `onRender` only when there is no other way.
 
 ```ts
-import {inRender} from 'react-afc'
+import {onRender} from 'react-afc'
 import {useEffect} from 'react'
 
 //...//
     // Constructor
     useEffect(/*...*/) // Error !!!
 
-    inRender(() => {
+    onRender(() => {
         useEffect(/*...*/) // Right
     })
 //...//
@@ -374,10 +380,10 @@ const Component = afc(props => {
 })
 ```
 
-### afterUnmount
+### onDestroy
 
 ```ts
-export function afterUnmount(callback: () => void): void
+export function onDestroy(callback: () => void): void
 ```
 
 Accepts a function without arguments.
@@ -387,19 +393,19 @@ Calls it when the component was unmounted.
 _The same as `useEffect(() => callback, [])`_
 
 ```ts
-import {afterUnmount} from 'react-afc'
+import {onDestroy} from 'react-afc'
 
 //...//
-    afterUnmount(() => {
+    onDestroy(() => {
         document.removeEventListener(/*...*/)
     })
 //...//
 ```
 
-### afterMount
+### onMount
 
 ```ts
-export function afterMount(callback: () => void): void
+export function onMount(callback: () => void): void
 ```
 
 Accepts a function without arguments.
@@ -409,19 +415,19 @@ Calls it when the component was mounted.
 _The same as `useEffect(callback, [])`_
 
 ```ts
-import {afterMount} from 'react-afc'
+import {onMount} from 'react-afc'
 
 //...//
-    afterMount(() => {
+    onMount(() => {
         document.addEventListener(/*...*/)
     })
 //...//
 ```
 
-### afterDraw
+### onDraw
 
 ```ts
-export function afterDraw(callback: () => void): void
+export function onDraw(callback: () => void): void
 ```
 
 Accepts a function without arguments.
@@ -431,10 +437,10 @@ Calls it when the component was drawn.
 _The same as `useLayoutEffect(() => {...}, [])`_
 
 ```ts
-import {afterDraw} from 'react-afc'
+import {onDraw} from 'react-afc'
 
 //...//
-    afterDraw(() => {
+    onDraw(() => {
         document.addEventListener(/*...*/)
     })
 //...//
@@ -544,10 +550,10 @@ import {ref} from 'react-afc'
 //...//
 ```
 
-### inRender
+### onRender
 
 ```ts
-export function inRender(callback: () => void): void
+export function onRender(callback: () => void): void
 ```
 
 Accepts a function without arguments.
@@ -555,10 +561,10 @@ Accepts a function without arguments.
 Calls it immediately and before each render.
 
 ```ts
-import {inRender} from 'react-afc'
+import {onRender} from 'react-afc'
 
 //...//
-    inRender(() => {
+    onRender(() => {
         useEffect(/*...*/)
         anyCommonHook()
     })
@@ -617,10 +623,10 @@ import type {RootState} from './state'
 //...//
 ```
 
-### getDispatcher
+### getDispatch
 
 ```ts
-export function getDispatcher<T extends Dispatch<AnyAction>>(): T
+export function getDispatch<T>(): T
 ```
 
 Doesn't accept anything.
@@ -628,12 +634,12 @@ Doesn't accept anything.
 Returns **redux dispatch**.
 
 ```ts
-import {getDispatcher} from 'react-afc'
+import {getDispatch} from 'react-afc'
 import {changeName, changeAge} from './personSlice'
 import type {AppDispatch} from './state'
 
 //...//
-    const dispatch = getDispatcher<AppDispatch>()
+    const dispatch = getDispatch<AppDispatch>()
 
     function onChangeName(value: string) {
         dispatch(changeName(value))
@@ -666,3 +672,43 @@ import {actions} from './store'
 //...//
 ```
 
+### Injectable
+
+```ts
+export function Injectable<T extends Constructable>(Constructable: T): Injectable
+```
+
+Marks the class as _injectable_, which allows you to use it in the `inject`.
+
+```ts
+import {Injectable} from 'react-afc'
+
+@Injectable
+export class LocalMessagesService {
+    private key = 'MESSAGE'
+    
+    public getMessage(): string {
+        return localStorage.getItem(this.key)
+    }
+}
+```
+
+### inject
+
+```ts
+export function inject<T extends Injectable>(Type: T): InstanceType<T>
+```
+
+Simulates the operation of Dependency Injection.
+Returns the only instance of the passed class.
+
+```ts
+import {inject} from 'react-afc'
+import {LocalMessagesService} from './LocalMessagesService'
+
+const localMessages = inject(LocalMessagesService)
+
+const Component = () => {
+    const message = localMessages.getMessage()
+}
+```

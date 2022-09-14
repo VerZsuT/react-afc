@@ -7,7 +7,7 @@ import type {Constructor, Data} from '../types'
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P extends {} = {}>(constructor: Constructor<P>): FC<P> {
+export function afc<P>(constructor: Constructor<P>): FC<P> {
     return (props: P) => {
         const ref = useRef<Data<P>>()
         let refData = ref.current
@@ -22,19 +22,19 @@ export function afc<P extends {} = {}>(constructor: Constructor<P>): FC<P> {
                 dataProps[key] = props[key]
 
             refData.beforeRender()
-            return refData.render()
+            return refData.render() as JSX.Element
         }
 
         refData = ref.current = {
             beforeRender: () => null,
             events: {},
-            render: null,
+            render: () => null,
             props: {...props}
         }
 
         setData(refData)
         refData.render = constructor(refData.props)
         resetData()
-        return refData.render()
+        return refData.render() as JSX.Element
     }
 }

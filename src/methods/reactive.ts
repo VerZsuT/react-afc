@@ -18,7 +18,9 @@ export function reactive<T extends { [key: string]: any }>(state: T): T {
                 if (value[key] === newVal) return
                 value[key] = newVal
                 forceUpdate()
-            }
+            },
+            configurable: true,
+            enumerable: true
         })
     }
     

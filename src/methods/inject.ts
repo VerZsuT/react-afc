@@ -1,17 +1,11 @@
-interface IConstructable {
-    new(...args: any[]): any
-}
-
-interface IInjectable extends IConstructable {
-    __injectInstance__?: any
-}
+import type { Constructable, IInjectable } from '../types'
 
 /**
  * Mark class as injectable
  */
-export function Injectable<T extends IConstructable>(Constructable: T): IInjectable {
+export function Injectable<T extends Constructable<any>>(Constructable: T): IInjectable & T {
     return class extends Constructable {
-        static __injectInstance__: InstanceType<T> | null = null
+        static __injectInstance__ = null
         constructor(...args: any[]) {
             super(...args)
         }

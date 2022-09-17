@@ -5,6 +5,14 @@ export type Constructor<P> = (props: P) => RenderFunc
 export type AFC<P> = Constructor<P>
 export type Ref<T> = { value: T }
 
+export interface Constructable<T> {
+    new(...args: any[]): T
+}
+
+export interface IInjectable extends Constructable<any> {
+    __injectInstance__?: any
+}
+
 export interface Data<P> {
     beforeRender(): void
     forceUpdate?(): void

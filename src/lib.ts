@@ -2,28 +2,22 @@ import { useState } from 'react'
 
 import type { Data } from './types'
 
-const initialData = <Data<{}>> new Proxy({}, {
-  get(): any {
-    throw new Error('Attempt to outside call react-afc method')
-  },
-  set() {
-    throw new Error('Attempt to outside call react-afc method')
-  }
-})
+const initialData = new Proxy({}, {
+  get: () => { throw new Error('Attempt to outside call react-afc method') },
+  set: () => { throw new Error('Attempt to outside call react-afc method') }
+}) as Data<{}>
 
 export let currentData: Data<any> = initialData
 export let isConstructing = false
 
-export function setConstructing(value: boolean): void {
-  isConstructing = value
-}
-
 export function setData<T>(data: Data<T>) {
   currentData = data
+  isConstructing = true
 }
 
 export function resetData() {
   currentData = initialData
+  isConstructing = false
 }
 
 export function addToRender(callback: () => void): void {

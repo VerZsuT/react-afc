@@ -31,7 +31,7 @@
         "eqeqeq": ["warn", "always"],
         "camelcase": ["warn", { "properties": "always" }],
         "jsx-quotes": ["error", "prefer-single"],
-        "indent": ["error", 4],
+        "indent": ["error", 2],
         "no-empty-function": "warn",
         "no-extra-bind": "warn",
         "no-extra-label": "warn",

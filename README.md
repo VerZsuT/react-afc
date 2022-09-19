@@ -17,6 +17,7 @@ Allows you to **simplify optimization**.
 - [State management](#state-management)
 - [Working with context](#working-with-context)
 - [Regular hooks in constructor](#using-regular-hooks-in-the-body-of-the-constructor)
+- [Compatible with non-afc components](#compatible-with-non-afc-components)
 - [Common errors](#common-errors)
 
 **API**
@@ -43,6 +44,7 @@ Redux
 - [getDispatch](#getdispatch)
 
 Other
+- [onceCreated](#oncecreated)
 - [memoized](#memoized)
 - [Injectable](#injectable)
 - [inject](#inject)
@@ -290,6 +292,48 @@ And before each next render it will be output to the console
 onRender
 ```
 
+## Compatible with non-afc components
+To use the same code in regular and _afc_ components, use the methods from `react-afc/compatible`.
+
+They have slightly less performance (+1 boolean check in each call).
+
+When called in an _afc_ component, they work like normal methods for 'constructor'. When called in a regular component,
+they use adapted versions that do not cause errors and do the same job as in 'constructor'.
+
+_Note:_ Use compatible methods only in reused functions.
+In other cases, the fastest option will be the usual methods from `react-afc`.
+
+```tsx
+import {afc} from 'react-afc'
+import {onMount, onDestroy} from 'react-afc/compatible'
+
+function handleDocumentClick(callback: () => void) {
+  onMount(() => {
+    document.addEventListener('click', callback)
+  })
+  onDestroy(() => {
+    document.removeEventListener('click', callback)
+  })
+}
+
+const AFCComponent = afc(() => {
+  handleDocumentClick(() => {
+    // any actions
+  })
+  return () => <p>any content</p>
+})
+
+const CommonComponent = () => {
+  // Will not cause errors
+  handleDocumentClick(() => {
+    // any actions
+  })
+  return <p>any content</p>
+}
+```
+
+For single hard calculations use [onceCreated](#oncecreated)
+
 ## Common errors
 
 Unpacking at the declaration will break the updating of the props: `name` and `age` will be the same every render
@@ -416,6 +460,7 @@ _The same as `useEffect(callback, [])`_
 
 ```ts
 import {onMount} from 'react-afc'
+// import {onMount} from 'react-afc/compatible'
 
 //...//
     onMount(() => {
@@ -438,6 +483,7 @@ _The same as `useLayoutEffect(() => {...}, [])`_
 
 ```ts
 import {onDraw} from 'react-afc'
+// import {onDraw} from 'react-afc/compatible'
 
 //...//
     onDraw(() => {
@@ -456,6 +502,7 @@ Creates a memoized value getter
 
 ```tsx
 import {memoized, reactive} from 'react-afc'
+// import {memoized} from 'react-afc/compatible'
 
 //...//
     const state = reactive({
@@ -487,6 +534,7 @@ _Has a superficial comparison of objects_.
 
 ```ts
 import {createState} from 'react-afc'
+// import {createState} from 'react-afc/compatible'
 
 //...//
     const {state, setName, setAge} = createState({
@@ -512,6 +560,7 @@ When it is changed, the component is updated.
 
 ```ts
 import {reactive} from 'react-afc'
+// import {reactive} from 'react-afc/compatible'
 
 //...//
     const state = reactive({
@@ -539,6 +588,7 @@ When the value of the link changes, the component will be updated.
 
 ```ts
 import {ref} from 'react-afc'
+// import {ref} from 'react-afc/compatible'
 
 //...//
     const count = ref(0)
@@ -562,6 +612,7 @@ Calls it immediately and before each render.
 
 ```ts
 import {onRender} from 'react-afc'
+// import {onRender} from 'react-afc/compatible'
 
 //...//
     onRender(() => {
@@ -583,6 +634,7 @@ Subscribes to context changes and returns `contextGetter`.
 
 ```ts
 import {handleContext} from 'react-afc'
+// import {handleContext} from 'react-afc/compatible'
 import {NameContext} from './NameContext'
 
 //...//
@@ -608,6 +660,7 @@ Subscribes to the change of the store and returns an object of the form `{ key: 
 
 ```ts
 import {useRedux} from 'react-afc'
+// import {useRedux} from 'react-afc/compatible'
 import {selectName, selectAge} from './personSlice'
 import type {RootState} from './state'
 
@@ -635,6 +688,8 @@ Returns **redux dispatch**.
 
 ```ts
 import {getDispatch} from 'react-afc'
+// import {getDispatch} from 'react-afc/compatible'
+
 import {changeName, changeAge} from './personSlice'
 import type {AppDispatch} from './state'
 
@@ -662,6 +717,7 @@ Returns wrapped actions. They can be used without dispatcher.
 
 ```ts
 import {useActions} from 'react-afc'
+// import {useActions} from 'react-afc/compatible'
 import {actions} from './store'
 
 //...//
@@ -710,5 +766,39 @@ const localMessages = inject(LocalMessagesService)
 
 const Component = () => {
     const message = localMessages.getMessage()
+}
+```
+
+
+### onceCreated
+
+```ts
+export function onceCreated<T>(factory: () => T): T
+```
+
+Calls the passed function once. Returns its cached value.
+
+```tsx
+import {afc} from 'react-afc'
+import {onceCreated, onMount} from 'react-afc/compatible'
+
+function withHardCalc() {
+  const bigValue = onceCreated(() => {/* calculations */})
+  
+  onMount(() => {
+    console.log(bigValue)
+  })
+}
+
+const AFCComponent = afc(() => {
+  withHardCalc()
+  return () => <p>content</p>
+})
+
+const CommonComponent = () => {
+  // It will work the same way as in the afc component.
+  // Will not cause errors.
+  withHardCalc()
+  return <p>content</p>
 }
 ```

@@ -1,5 +1,5 @@
-import {getForceUpdate} from '../lib'
-import type {StateReturns, StateSetters} from '../types'
+import { getForceUpdate } from '../lib'
+import type { StateReturns, StateSetters } from '../types'
 
 /**
  * Creates a state
@@ -8,17 +8,17 @@ import type {StateReturns, StateSetters} from '../types'
  * @returns - {state, set<Key>}
  */
 export function createState<T extends { [key: string]: any }>(initial: T): StateReturns<T> {
-    const forceUpdate = getForceUpdate()
-    const setters = {} as StateSetters<T>
-    const state = {...initial}
+  const forceUpdate = getForceUpdate()
+  const setters = {} as StateSetters<T>
+  const state = {...initial}
 
-    for (const name in initial) {
-        setters[`set${name[0].toUpperCase()}${name.slice(1)}`] = (value: any) => {
-            if (state[name] === value) return
-            state[name] = value
-            forceUpdate()
-        }
+  for (const name in initial) {
+    setters[`set${name[0].toUpperCase()}${name.slice(1)}`] = (value: any) => {
+      if (state[name] === value) return
+      state[name] = value
+      forceUpdate()
     }
+  }
 
-    return {state, ...setters}
+  return {state, ...setters}
 }

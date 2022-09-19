@@ -1,6 +1,6 @@
-import {useEffect} from 'react'
+import { useEffect } from 'react'
 
-import {addToRenderAndCall, currentData} from '../lib'
+import { addToRenderAndCall, currentData } from '../lib'
 
 /**
  * @deprecated use `onMount` instead
@@ -13,19 +13,19 @@ export const afterMount = onMount
  * _Analog of `useEffect(callback, [])`_
  */
 export function onMount(callback: () => void): void {
-    const events = currentData.events
+  const events = currentData.events
 
-    if (events.afterMount) {
-        const prevHandler = events.afterMount
-        events.afterMount = () => {
-            prevHandler()
-            callback()
-        }
-        return
+  if (events.afterMount) {
+    const prevHandler = events.afterMount
+    events.afterMount = () => {
+      prevHandler()
+      callback()
     }
+    return
+  }
 
-    events.afterMount = callback
-    addToRenderAndCall(() => {
-        useEffect(events.afterMount!, [])
-    })
+  events.afterMount = callback
+  addToRenderAndCall(() => {
+    useEffect(events.afterMount!, [])
+  })
 }

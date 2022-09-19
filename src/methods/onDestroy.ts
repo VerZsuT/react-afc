@@ -1,6 +1,6 @@
-import {useEffect} from 'react'
+import { useEffect } from 'react'
 
-import {addToRenderAndCall, currentData} from '../lib'
+import { addToRenderAndCall, currentData } from '../lib'
 
 /**
  * @deprecated use `onDestroy` instead
@@ -13,19 +13,19 @@ export const afterUnmount = onDestroy
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function onDestroy(callback: () => void): void {
-    const events = currentData.events
+  const events = currentData.events
 
-    if (events.afterUnmount) {
-        const prevHandler = events.afterUnmount
-        events.afterUnmount = () => {
-            prevHandler()
-            callback()
-        }
-        return
+  if (events.afterUnmount) {
+    const prevHandler = events.afterUnmount
+    events.afterUnmount = () => {
+      prevHandler()
+      callback()
     }
+    return
+  }
 
-    events.afterUnmount = callback
-    addToRenderAndCall(() => {
-        useEffect(() => events.afterUnmount, [])
-    })
+  events.afterUnmount = callback
+  addToRenderAndCall(() => {
+    useEffect(() => events.afterUnmount, [])
+  })
 }

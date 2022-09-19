@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "Allows you to significantly simplify the optimization of functional react components",
   "keywords": [
     "react",
@@ -12,11 +12,19 @@
     "type": "git",
     "url": "https://github.com/VerZsuT/react-afc.git"
   },
-  "main": "./lib/index.js",
-  "typings": "./lib/index.d.ts",
-  "files": ["./lib"],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": ["lib"],
+  "typesVersions": {
+    "*": {
+      "compatible": ["lib/compatible.d.ts"],
+      "lib": ["lib/lib.d.ts"],
+      "types": ["lib/types.d.ts"]
+    }
+  },
   "exports": {
     ".": "./lib/index.js",
+    "./compatible": "./lib/compatible.js",
     "./lib": "./lib/lib.js",
     "./types": "./lib/types.js",
     "./package.json": "./package.json"

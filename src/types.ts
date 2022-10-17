@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
+
 import type { AnyAction, Dispatch } from 'redux'
 
-export type RenderFunc = () => JSX.Element | null | undefined
+export type RenderFunc = () => ReactNode
 export type Constructor<P> = (props: P) => RenderFunc
 export type AFC<P> = Constructor<P>
 export type Ref<T> = { value: T }

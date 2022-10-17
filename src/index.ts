@@ -1,32 +1,17 @@
-import type {Context, FC} from 'react'
-import {memo, useContext, useEffect, useLayoutEffect, useMemo, useRef} from 'react'
+import type { Context, FC, ReactNode } from 'react'
+import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 
-import {useDispatch, useSelector} from 'react-redux'
-import type {AnyAction, Dispatch} from 'redux'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AnyAction, Dispatch } from 'redux'
 
-import {addToRenderAndCall, currentData, getForceUpdate, resetData, setData} from './lib'
-import type {Constructable, Constructor, Data, IInjectable, Ref, StateReturns, StateSetters} from './types'
-
-/** @deprecated use `getDispatch` instead */
-export const getDispatcher = getDispatch
-
-/** @deprecated use `onDestroy` instead */
-export const afterUnmount = onDestroy
-
-/** @deprecated use `onDraw` instead */
-export const afterDraw = onDraw
-
-/** @deprecated use `onMount` instead */
-export const afterMount = onMount
-
-/** @deprecated use `onRender` instead */
-export const inRender = onRender
+import { addToRenderAndCall, currentData, getForceUpdate, resetData, setData } from './lib'
+import type { Constructable, Constructor, Data, IInjectable, Ref, StateReturns, StateSetters } from './types'
 
 /**
  * Returns a component with constructor functionality
  */
 export function afc<P>(constructor: Constructor<P>): FC<P> {
-  return (props: P) => {
+  return ((props: P): ReactNode => {
     const ref = useRef<Data<P>>()
     let refData = ref.current
 
@@ -53,15 +38,15 @@ export function afc<P>(constructor: Constructor<P>): FC<P> {
     setData(refData)
     refData.render = constructor(refData.props)
     resetData()
-    return refData.render() as JSX.Element
-  }
+    return refData.render()
+  }) as FC<P>
 }
 
 /**
  * Returns a memo component with constructor functionality
  */
 export function afcMemo<P>(constructor: Constructor<P>) {
-  return memo(afc(constructor))
+  return memo(afc<P>(constructor))
 }
 
 /**
@@ -234,8 +219,8 @@ export function reactive<T extends { [key: string]: any }>(state: T): T {
         value[key] = newVal
         forceUpdate()
       },
-      configurable: true,
-      enumerable: true
+      enumerable: true,
+      configurable: false
     })
   }
 

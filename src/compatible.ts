@@ -1,11 +1,11 @@
-import type {Context} from 'react'
-import {useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
+import type { Context } from 'react'
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import {useDispatch, useSelector} from 'react-redux'
-import type {AnyAction, Dispatch} from 'redux'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AnyAction, Dispatch } from 'redux'
 
-import {isConstructing} from './lib'
-import type {Ref, StateReturns, StateSetters} from './types'
+import { isConstructing } from './lib'
+import type { Ref, StateReturns, StateSetters } from './types'
 
 import * as original from './index'
 
@@ -188,8 +188,8 @@ export function reactive<T extends { [key: string]: any }>(state: T): T {
             value[key] = newValue
             setState({})
           },
-          configurable: true,
-          enumerable: true
+          enumerable: true,
+          configurable: false
         })
       }
       return obj

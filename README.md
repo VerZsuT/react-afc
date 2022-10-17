@@ -7,6 +7,7 @@ Allows you to **simplify optimization**.
 # Table of contents
 
 **About the package**
+
 - [Installation](#installation)
 - [Why](#why)
 - [When to use](#when-to-use)
@@ -23,27 +24,32 @@ Allows you to **simplify optimization**.
 **API**
 
 Component
+
 - [afc](#afcafcmemo)
 - [afcMemo](#afcafcmemo)
 
 Lifecycle
+
 - [onMount](#onmount)
 - [onDestroy](#ondestroy)
 - [onDraw](#ondraw)
 - [onRender](#onrender)
 
 State
+
 - [createState](#createstate)
 - [reactive](#reactive)
 - [ref](#ref)
 - [handleContext](#handlecontext)
 
 Redux
+
 - [useRedux](#useredux)
 - [useActions](#useactions)
 - [getDispatch](#getdispatch)
 
 Other
+
 - [onceCreated](#oncecreated)
 - [memoized](#memoized)
 - [Injectable](#injectable)
@@ -98,75 +104,79 @@ and in functions called from it.
 _See the description below_.
 
 ```tsx
-import type {ChangeEvent} from 'react'
-import {reactive, afcMemo, useActions, useRedux} from 'react-afc'
-import {selectName, actions} from './store'
+import type { ChangeEvent } from 'react'
+import { reactive, afcMemo, useActions, useRedux } from 'react-afc'
+import { selectName, actions } from './store'
 
-interface Props {
-    exampleProp: number
+type Props = {
+  exampleProp: number
 }
 
-export default afcMemo<Props>(props => {
-    const {changeName} = useActions(actions)
-    
-    const reduxState = useRedux({
-        name: selectName
-    })
-    const state = reactive({
-        multiplier: "2",
-        number: "5"
-    })
+export const Component = afcMemo((props: Props) => {
+  const { changeName } = useActions(actions)
+  
+  const store = useRedux({
+    name: selectName
+  })
+  const state = reactive({
+    multiplier: "2",
+    number: "5"
+  })
 
-    function onChangeMult(e: ChangeEvent<HTMLInputElement>) {
-        state.multiplier = e.currentTarget.value
-    }
+  function render(): ReactNode {
+    const { multiplier, number } = state
+    const { name } = store
 
-    function onChangeNumber(e: ChangeEvent<HTMLInputElement>) {
-        state.number = e.currentTarget.value
-    }
-    
-    function onChangeName(e: ChangeEvent<HTMLInputElement>) {
-        changeName(e.currentTarget.value)
-    }
+    return (
+      <div>
+          <h1>Advanced function component</h1>
+          <input value={name} onChange={onChangeName} />
+          <input value={multiplier} onChange={onChangeMult} />
+          <input value={number} onChange={onChangeNumber} />
+          <p>Calculated: {calcValue()}</p>
+          <p>Hi, {name}!</p>
+      </div>
+    )
+  }
 
-    function calcValue() {
-        return +state.multiplier * +state.number
-    }
+  function onChangeMult(e: ChangeEvent<HTMLInputElement>): void {
+    state.multiplier = e.currentTarget.value
+  }
 
-    return () => {
-        const {multiplier, number} = state
-        const {name} = reduxState
+  function onChangeNumber(e: ChangeEvent<HTMLInputElement>): void {
+    state.number = e.currentTarget.value
+  }
+  
+  function onChangeName(e: ChangeEvent<HTMLInputElement>): void {
+    changeName(e.currentTarget.value)
+  }
 
-        return (
-            <div>
-                <h1>Advanced function component</h1>
-                <input value={name} onChange={onChangeName} />
-                <input value={multiplier} onChange={onChangeMult} />
-                <input value={number} onChange={onChangeNumber} />
-                <p>Calculated: {calcValue()}</p>
-                <p>Hi, {name}!</p>
-            </div>
-        )
-    }
+  function calcValue(): number {
+    return +state.multiplier * +state.number
+  }
+
+  return render
 })
 ```
 
 ## Component structure
 
 ```tsx
-import {afc} from 'react-afc'
+import { afc } from 'react-afc'
 
 const Component = afc(props => {
-    // The body of the "constructor".
-    // Is called once (before the first render).
-    // Hooks only in inRender.
+  // The body of the "constructor".
+  // Is called once (before the first render).
+  // Hooks only in inRender.
 
-    return () => {
-        // render-function, as in a regular component.
-        // Every render is called.
+  function render(): ReactNode {
+    // render-function, as in a regular component.
+    // Every render is called.
 
-        return <div>content</div>
-    }
+    return <div>content</div>
+  }
+
+  return render
 })
 ```
 
@@ -175,61 +185,61 @@ const Component = afc(props => {
 To work with the state, use `reactive`/`createState`/`ref`
 
 ```ts
-import {createState, reactive, ref} from 'react-afc'
+import { createState, reactive, ref } from 'react-afc'
 
 //...//
-    const {state, setAuthor, setName /* set<Key> */} = createState({
-        author: 'VerZsuT',
-        name: 'react-afc'
-        // key: value
-    })
-    function onInput(newName: string) {
-        setName(newName)
-    }
+  const { state, setAuthor, setName /* set<Key> */ } = createState({
+    author: 'VerZsuT',
+    name: 'react-afc'
+    // key: value
+  })
+  function onInput(newName: string): void {
+    setName(newName)
+  }
 // OR //
-    const reactiveState = reactive({
-        value: 'react-afc'
-    })
-    function onInput(newVal: string) {
-        reactiveState.value = newVal
-    }
+  const reactiveState = reactive({
+    value: 'react-afc'
+  })
+  function onInput(newVal: string): void {
+    reactiveState.value = newVal
+  }
 // OR //
-    const count = ref(0)
-    function onInput(newVal: number) {
-        count.value = newVal
-    }
+  const count = ref(0)
+  function onInput(newVal: number): void {
+    count.value = newVal
+  }
 //...//
 ```
 
 To work with **Redux** use `useRedux` and `getDispatch`/`useActions`
 
 ```ts
-import {useRedux, getDispatch, useActions} from 'react-afc'
-import type {Store, AppDispatch} from './store'
-import {actions} from './store'
-import {changeCount, selectCount} from './countSlice'
+import { useRedux, getDispatch, useActions } from 'react-afc'
+import type { Store, AppDispatch } from './store'
+import { actions } from './store'
+import { changeCount, selectCount } from './countSlice'
 
 //...//
-    const reduxState = useRedux({
-        name: (store: Store) => store.name.current,
-        count: selectCount
-        // key: selector
-    })
-    function greet() {
-        const {name} = reduxState
-        return `Hi, ${name}!`
-    }
+  const reduxState = useRedux({
+    name: (store: Store) => store.name.current,
+    count: selectCount
+    // key: selector
+  })
+  function greet(): string {
+    const {name} = reduxState
+    return `Hi, ${name}!`
+  }
 
-    const dispatch = getDispatch<AppDispatch>()
-    function onChange(value: number) {
-        dispatch(changeCount(value))
-    }
-    
-    // Alternative
-    const {delCount} = useActions(actions)
-    function onDelCount() {
-        delCount()
-    }
+  const dispatch = getDispatch<AppDispatch>()
+  function onChange(value: number): void {
+    dispatch(changeCount(value))
+  }
+  
+  // Alternative
+  const { delCount } = useActions(actions)
+  function onDelCount(): void {
+    delCount()
+  }
 //...//
 ```
 
@@ -240,41 +250,41 @@ To use the context, import the `handleContext`.
 _Returns the context **getter**, not the context itself_.
 
 ```ts
-import {handleContext} from 'react-afc'
+import { handleContext } from 'react-afc'
 import CountContext from './CountContext'
 
 //...//
-    const getCount = handleContext(CountContext)
-    function calculate() {
-        return getCount() * 5
-    }
+  const getCount = handleContext(CountContext)
+  function calculate(): number {
+    return getCount() * 5
+  }
 //...//
 ```
 
 ## Using regular hooks in the body of the "constructor"
 
 ```ts
-import {onRender} from 'react-afc'
+import { onRender } from 'react-afc'
 
 //...//
-    let exampleVar: string;
-    onRender(() => {
-        exampleVar = commonHook()
-    })
+  let exampleVar: string;
+  onRender(() => {
+    exampleVar = commonHook()
+  })
 //...//
 ```
 
 `onRender` is called immediately and before each render (so as not to break hooks)
 
 ```ts
-import {onRender} from 'react-afc'
+import { onRender } from 'react-afc'
 
 //...//
-    console.log('Constructor start')
-    onRender(() => {
-        console.log('onRender')
-    })
-    console.log('After onRender')
+  console.log('Constructor start')
+  onRender(() => {
+    console.log('onRender')
+  })
+  console.log('After onRender')
 //...//
 ```
 
@@ -293,6 +303,7 @@ onRender
 ```
 
 ## Compatible with non-afc components
+
 To use the same code in regular and _afc_ components, use the methods from `react-afc/compatible`.
 
 They have slightly less performance (+1 boolean check in each call).
@@ -304,10 +315,10 @@ _Note:_ Use compatible methods only in reused functions.
 In other cases, the fastest option will be the usual methods from `react-afc`.
 
 ```tsx
-import {afc} from 'react-afc'
-import {onMount, onDestroy} from 'react-afc/compatible'
+import { afc } from 'react-afc'
+import { onMount, onDestroy } from 'react-afc/compatible'
 
-function handleDocumentClick(callback: () => void) {
+function handleDocumentClick(callback: () => void): void {
   onMount(() => {
     document.addEventListener('click', callback)
   })
@@ -320,7 +331,8 @@ const AFCComponent = afc(() => {
   handleDocumentClick(() => {
     // any actions
   })
-  return () => <p>any content</p>
+  const render = (): ReactNode => <p>any content</p>
+  return render
 })
 
 const CommonComponent = () => {
@@ -339,11 +351,11 @@ For single hard calculations use [onceCreated](#oncecreated)
 Unpacking at the declaration will break the updating of the props: `name` and `age` will be the same every render
 
 ```ts
-import {afc} from 'react-afc'
+import { afc } from 'react-afc'
 
-interface Props {
-    name: string
-    age: number
+type Props = {
+  name: string
+  age: number
 }
                               // Error !!!
 const Component = afc<Props>(({ name, age }) => {/*...*/})
@@ -356,26 +368,26 @@ _The exclusion is the case when the received fields do not change during the lif
 _Unpacking in **render function** or handlers does not have such a problem_
 
 ```ts
-import {reactive, useRedux} from 'react-afc'
-import type {RootState} from './state'
+import { reactive, useRedux } from 'react-afc'
+import type { RootState } from './state'
 
 //...//
-    const state = reactive({
-        name: 'Aleksandr',
-        age: 20
-    })
-    const reduxState = useRedux({
-        count: (state: RootState) => state.count.value
-    })
-    const {name, age} = state // Error, freeze !!!
-    const {count} = reduxState
-    const {surname} = props
+  const state = reactive({
+    name: 'Aleksandr',
+    age: 20
+  })
+  const store = useRedux({
+    count: (state: RootState) => state.count.value
+  })
+  const { name, age } = state // Error, freeze !!!
+  const { count } = store
+  const { surname } = props
 
-    function onClick() {
-        const {name, age} = state // Right, always relevant
-        const {count} = reduxState
-        const {surname} = props
-    }
+  function onClick(): void {
+    const { name, age } = state // Right, always relevant
+    const { count } = store
+    const { surname } = props
+  }
 //...//
 ```
 
@@ -389,16 +401,16 @@ The contents of `onRender` are called every render, which ensures that the hooks
 _Note:_ Use `onRender` only when there is no other way.
 
 ```ts
-import {onRender} from 'react-afc'
-import {useEffect} from 'react'
+import { onRender } from 'react-afc'
+import { useEffect } from 'react'
 
 //...//
-    // Constructor
-    useEffect(/*...*/) // Error !!!
+  // Constructor
+  useEffect(/*...*/) // Error !!!
 
-    onRender(() => {
-        useEffect(/*...*/) // Right
-    })
+  onRender(() => {
+    useEffect(/*...*/) // Right
+  })
 //...//
 ```
 
@@ -416,11 +428,12 @@ Accepts a _constructor function_, which should return the usual _component funct
 Returns the wrapped component. Not add an extra node to the virtual DOM.
 
 ```tsx
-import {afc} from 'react-afc'
+import { afc } from 'react-afc'
 
 const Component = afc(props => {
-    // constructor logic
-    return () => <div>any content</div>
+  // constructor logic
+  const render = (): ReactNode => <div>any content</div>
+  return render
 })
 ```
 
@@ -437,12 +450,13 @@ Calls it when the component was unmounted.
 _The same as `useEffect(() => callback, [])`_
 
 ```ts
-import {onDestroy} from 'react-afc'
+import { onDestroy } from 'react-afc'
+// import { onDestroy } from 'react-afc/compatible'
 
 //...//
-    onDestroy(() => {
-        document.removeEventListener(/*...*/)
-    })
+  onDestroy(() => {
+    document.removeEventListener(/*...*/)
+  })
 //...//
 ```
 
@@ -459,13 +473,13 @@ Calls it when the component was mounted.
 _The same as `useEffect(callback, [])`_
 
 ```ts
-import {onMount} from 'react-afc'
-// import {onMount} from 'react-afc/compatible'
+import { onMount } from 'react-afc'
+// import { onMount } from 'react-afc/compatible'
 
 //...//
-    onMount(() => {
-        document.addEventListener(/*...*/)
-    })
+  onMount(() => {
+    document.addEventListener(/*...*/)
+  })
 //...//
 ```
 
@@ -482,13 +496,13 @@ Calls it when the component was drawn.
 _The same as `useLayoutEffect(() => {...}, [])`_
 
 ```ts
-import {onDraw} from 'react-afc'
-// import {onDraw} from 'react-afc/compatible'
+import { onDraw } from 'react-afc'
+// import { onDraw } from 'react-afc/compatible'
 
 //...//
-    onDraw(() => {
-        document.addEventListener(/*...*/)
-    })
+  onDraw(() => {
+    document.addEventListener(/*...*/)
+  })
 //...//
 ```
 
@@ -501,22 +515,23 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T
 Creates a memoized value getter
 
 ```tsx
-import {memoized, reactive} from 'react-afc'
-// import {memoized} from 'react-afc/compatible'
+import { memoized, reactive } from 'react-afc'
+// import { memoized } from 'react-afc/compatible'
 
 //...//
-    const state = reactive({
-        count: 0,
-        mult: 0
-    })
-    const getResult = memoized(
-        () => ({result: count * mult}),
-        () => [state.count, state.mult]
-    )
+  const state = reactive({
+    count: 0,
+    mult: 0
+  })
+  const getResult = memoized(
+    () => ({result: count * mult}),
+    () => [state.count, state.mult]
+  )
 
-    return () => (
-        <Component result={getResult()} />
-    )
+  const render = (): ReactNode => (
+    <Component result={getResult()} />
+  )
+  return render
 //...//
 ```
 
@@ -533,17 +548,17 @@ Returns the object `{ state, set<Key> }`.
 _Has a superficial comparison of objects_.
 
 ```ts
-import {createState} from 'react-afc'
-// import {createState} from 'react-afc/compatible'
+import { createState } from 'react-afc'
+// import { createState } from 'react-afc/compatible'
 
 //...//
-    const {state, setName, setAge} = createState({
-        name: 'Boris',
-        age: 30
-    })
-    function onChange() {
-        setAge(20) // State: { name: 'Boris', age: 20 }
-    }
+  const { state, setName, setAge } = createState({
+    name: 'Boris',
+    age: 30
+  })
+  function onChange(): void {
+    setAge(20) // State: { name: 'Boris', age: 20 }
+  }
 //...//
 ```
 
@@ -559,19 +574,19 @@ Returns a copy of the state object.
 When it is changed, the component is updated.
 
 ```ts
-import {reactive} from 'react-afc'
-// import {reactive} from 'react-afc/compatible'
+import { reactive } from 'react-afc'
+// import { reactive } from 'react-afc/compatible'
 
 //...//
-    const state = reactive({
-        count: 0
-    })
-    function onInput(value: number) {
-        state.count = value
-    }
-    function onButtonClick() {
-        state.count++
-    }
+  const state = reactive({
+    count: 0
+  })
+  function onInput(value: number): void {
+    state.count = value
+  }
+  function onButtonClick(): void {
+    state.count++
+  }
 //...//
 ```
 
@@ -587,16 +602,16 @@ Returns a reactive reference.
 When the value of the link changes, the component will be updated.
 
 ```ts
-import {ref} from 'react-afc'
-// import {ref} from 'react-afc/compatible'
+import { ref } from 'react-afc'
+// import { ref } from 'react-afc/compatible'
 
 //...//
-    const count = ref(0)
-    const text = ref<string>(null)
-    function onChange() {
-        count.value++
-        text.valie = 'example'
-    }
+  const count = ref(0)
+  const text = ref<string>(null)
+  function onChange(): void {
+    count.value++
+    text.valie = 'example'
+  }
 //...//
 ```
 
@@ -611,14 +626,14 @@ Accepts a function without arguments.
 Calls it immediately and before each render.
 
 ```ts
-import {onRender} from 'react-afc'
-// import {onRender} from 'react-afc/compatible'
+import { onRender } from 'react-afc'
+// import { onRender } from 'react-afc/compatible'
 
 //...//
-    onRender(() => {
-        useEffect(/*...*/)
-        anyCommonHook()
-    })
+  onRender(() => {
+    useEffect(/*...*/)
+    anyCommonHook()
+  })
 //...//
 ```
 
@@ -633,16 +648,17 @@ Accepts a context object.
 Subscribes to context changes and returns `contextGetter`.
 
 ```ts
-import {handleContext} from 'react-afc'
-// import {handleContext} from 'react-afc/compatible'
-import {NameContext} from './NameContext'
+import { handleContext } from 'react-afc'
+// import { handleContext } from 'react-afc/compatible'
+
+import { NameContext } from './NameContext'
 
 //...//
-    const getContext = handleContext(NameContext)
-    function greet() {
-        const name = getContext()
-        return `Hi, ${name}!`
-    }
+  const getContext = handleContext(NameContext)
+  function greet(): string {
+    const name = getContext()
+    return `Hi, ${name}!`
+  }
 //...//
 ```
 
@@ -659,20 +675,21 @@ Accepts a config object of the form `{ key: selector }`.
 Subscribes to the change of the store and returns an object of the form `{ key: value_from_selector }`.
 
 ```ts
-import {useRedux} from 'react-afc'
-// import {useRedux} from 'react-afc/compatible'
-import {selectName, selectAge} from './personSlice'
-import type {RootState} from './state'
+import { useRedux } from 'react-afc'
+// import { useRedux } from 'react-afc/compatible'
+
+import { selectName, selectAge } from './personSlice'
+import type { RootState } from './state'
 
 //...//
-    const reduxState = useRedux({
-        name: selectName,
-        age: selectAge,
-        count: (state: RootState) => state.count.value
-    })
-    function func() {
-        const {name, age, count} = reduxState
-    }
+  const store = useRedux({
+    name: selectName,
+    age: selectAge,
+    count: (state: RootState) => state.count.value
+  })
+  function func(): void {
+    const { name, age, count } = store
+  }
 //...//
 ```
 
@@ -687,21 +704,21 @@ Doesn't accept anything.
 Returns **redux dispatch**.
 
 ```ts
-import {getDispatch} from 'react-afc'
-// import {getDispatch} from 'react-afc/compatible'
+import { getDispatch } from 'react-afc'
+// import { getDispatch } from 'react-afc/compatible'
 
-import {changeName, changeAge} from './personSlice'
-import type {AppDispatch} from './state'
+import { changeName, changeAge } from './personSlice'
+import type { AppDispatch } from './state'
 
 //...//
-    const dispatch = getDispatch<AppDispatch>()
+  const dispatch = getDispatch<AppDispatch>()
 
-    function onChangeName(value: string) {
-        dispatch(changeName(value))
-    }
-    function onChangeAge(value: number) {
-        dispatch(changeAge(value))
-    }
+  function onChangeName(value: string): void {
+    dispatch(changeName(value))
+  }
+  function onChangeAge(value: number): void {
+    dispatch(changeAge(value))
+  }
 //...//
 ```
 
@@ -716,15 +733,16 @@ Accepts a redux actions
 Returns wrapped actions. They can be used without dispatcher.
 
 ```ts
-import {useActions} from 'react-afc'
-// import {useActions} from 'react-afc/compatible'
-import {actions} from './store'
+import { useActions } from 'react-afc'
+// import { useActions } from 'react-afc/compatible'
+
+import { actions } from './store'
 
 //...//
-    const {changeCount} = useActions(actions)
-    function setCountToFive() {
-        changeCount(5)
-    }
+  const {changeCount} = useActions(actions)
+  function setCountToFive(): void {
+    changeCount(5)
+  }
 //...//
 ```
 
@@ -737,15 +755,15 @@ export function Injectable<T extends Constructable>(Constructable: T): Injectabl
 Marks the class as _injectable_, which allows you to use it in the `inject`.
 
 ```ts
-import {Injectable} from 'react-afc'
+import { Injectable } from 'react-afc'
 
 @Injectable
 export class LocalMessagesService {
-    private key = 'MESSAGE'
-    
-    public getMessage(): string {
-        return localStorage.getItem(this.key)
-    }
+  private key = 'MESSAGE'
+  
+  getMessage(): string {
+    return localStorage.getItem(this.key)
+  }
 }
 ```
 
@@ -759,16 +777,15 @@ Simulates the operation of Dependency Injection.
 Returns the only instance of the passed class.
 
 ```ts
-import {inject} from 'react-afc'
-import {LocalMessagesService} from './LocalMessagesService'
+import { inject } from 'react-afc'
+import { LocalMessagesService } from './LocalMessagesService'
 
 const localMessages = inject(LocalMessagesService)
 
 const Component = () => {
-    const message = localMessages.getMessage()
+  const message = localMessages.getMessage()
 }
 ```
-
 
 ### onceCreated
 
@@ -779,10 +796,10 @@ export function onceCreated<T>(factory: () => T): T
 Calls the passed function once. Returns its cached value.
 
 ```tsx
-import {afc} from 'react-afc'
-import {onceCreated, onMount} from 'react-afc/compatible'
+import { afc } from 'react-afc'
+import { onceCreated, onMount } from 'react-afc/compatible'
 
-function withHardCalc() {
+function withHardCalc(): void {
   const bigValue = onceCreated(() => {/* calculations */})
   
   onMount(() => {

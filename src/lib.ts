@@ -10,12 +10,12 @@ const initialData = new Proxy({}, {
 export let currentData: Data<any> = initialData
 export let isConstructing = false
 
-export function setData<T>(data: Data<T>) {
+export function setData<T>(data: Data<T>): void {
   currentData = data
   isConstructing = true
 }
 
-export function resetData() {
+export function resetData(): void {
   currentData = initialData
   isConstructing = false
 }
@@ -33,7 +33,7 @@ export function addToRenderAndCall<T = undefined>(callback: () => T): T {
   return callback()
 }
 
-export function getForceUpdate() {
+export function getForceUpdate(): () => void {
   return currentData.forceUpdate ??= (() => {
     const stateSetter = addToRenderAndCall(useState)[1]
     return () => stateSetter({})

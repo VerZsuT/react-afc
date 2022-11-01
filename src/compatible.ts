@@ -4,10 +4,10 @@ import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } fro
 import { useDispatch, useSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { isConstructing } from './lib'
-import type { Ref, StateReturns, StateSetters } from './types'
+import { isConstructing as inAFC } from './lib'
+import type { Actions, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
 
-import * as original from './index'
+import * as AFC from './index'
 
 /**
  * _Compatible with non-afc components_
@@ -15,30 +15,28 @@ import * as original from './index'
  * Creates a state
  *
  * _Before applying the state changes, superficially compares the previous and new state_
- * @returns - {state, set<Key>}
+ * @returns - { state, set<Key> }
  */
-export function createState<T extends { [key: string]: any }>(initial: T): StateReturns<T> {
-  if (isConstructing) {
-    return original.createState<T>(initial)
-  }
-  else {
-    const setState = useState<{}>()[1]
+export function createState<T extends State>(initial: T): StateReturns<T> {
+  if (inAFC) return AFC.createState<T>(initial)
 
-    const [state, setters] = onceCreated(() => {
-      const value = { ...initial }
-      const obj = {} as StateSetters<T>
-      for (const name in value) {
-        obj[`set${name[0].toUpperCase()}${name.slice(1)}`] = (newValue: any) => {
-          if (value[name] === newValue) return
-          value[name] = newValue
-          setState({})
-        }
+  const setState = useState<{}>()[1]
+
+  const [state, setters] = onceCreated(() => {
+    const value = { ...initial }
+    const obj = {} as StateSetters<T>
+    for (const name in value) {
+      const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
+      obj[setterName] = (newValue: any) => {
+        if (value[name] === newValue) return
+        value[name] = newValue
+        setState({})
       }
-      return [value, obj]
-    })
+    }
+    return [value, obj]
+  })
 
-    return {state, ...setters}
-  }
+  return { state, ...setters }
 }
 
 /**
@@ -47,10 +45,8 @@ export function createState<T extends { [key: string]: any }>(initial: T): State
  * Returns redux-dispatch
  */
 export function getDispatch<T = Dispatch<AnyAction>>(): T {
-  if (isConstructing)
-    return original.getDispatch<T>()
-  else
-    return useDispatch() as T
+  if (inAFC) return AFC.getDispatch<T>()
+  return useDispatch() as T
 }
 
 /**
@@ -60,13 +56,10 @@ export function getDispatch<T = Dispatch<AnyAction>>(): T {
  * @returns context getter
  */
 export function handleContext<T>(context: Context<T>): () => T {
-  if (isConstructing) {
-    return original.handleContext<T>(context)
-  }
-  else {
-    const value = useContext(context)
-    return () => value
-  }
+  if (inAFC) return AFC.handleContext<T>(context)
+
+  const value = useContext(context)
+  return () => value
 }
 
 /**
@@ -75,13 +68,10 @@ export function handleContext<T>(context: Context<T>): () => T {
  * Returns the getter of the memoized value
  */
 export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T {
-  if (isConstructing) {
-    return original.memoized<T>(factory, depsGetter)
-  }
-  else {
-    const value = useMemo(factory, depsGetter())
-    return () => value
-  }
+  if (inAFC) return AFC.memoized<T>(factory, depsGetter)
+
+  const value = useMemo(factory, depsGetter())
+  return () => value
 }
 
 /**
@@ -90,24 +80,21 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T 
  * Ensures that the value of the variable will be calculated **once** in _afc_ and _non-afc_ components
  */
 export function onceCreated<T>(factory: () => T): T {
-  if (isConstructing) {
-    return factory()
-  }
-  else {
-    const ref = useRef({
-      isCreated: false,
-      value: null as T
-    })
+  if (inAFC) return factory()
 
-    if (!ref.current.isCreated) {
-      ref.current = {
-        isCreated: true,
-        value: factory()
-      }
+  const ref = useRef({
+    isCreated: false,
+    value: null as T
+  })
+
+  if (!ref.current.isCreated) {
+    ref.current = {
+      isCreated: true,
+      value: factory()
     }
-
-    return ref.current.value
   }
+
+  return ref.current.value
 }
 
 /**
@@ -118,8 +105,8 @@ export function onceCreated<T>(factory: () => T): T {
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function onDestroy(callback: () => void): void {
-  if (isConstructing)
-    original.onDestroy(callback)
+  if (inAFC)
+    AFC.onDestroy(callback)
   else
     useEffect(() => callback, [])
 }
@@ -132,8 +119,8 @@ export function onDestroy(callback: () => void): void {
  * _Analog of `useLayoutEffect(callback, [])`_
  */
 export function onDraw(callback: () => void): void {
-  if (isConstructing)
-    original.onDraw(callback)
+  if (inAFC)
+    AFC.onDraw(callback)
   else
     useLayoutEffect(callback, [])
 }
@@ -146,8 +133,8 @@ export function onDraw(callback: () => void): void {
  * _Analog of `useEffect(callback, [])`_
  */
 export function onMount(callback: () => void): void {
-  if (isConstructing)
-    original.onMount(callback)
+  if (inAFC)
+    AFC.onMount(callback)
   else
     useEffect(callback, [])
 }
@@ -158,8 +145,8 @@ export function onMount(callback: () => void): void {
  * Calls the function immediately in constructor and before each render
  */
 export function onRender(callback: () => void): void {
-  if (isConstructing)
-    original.onRender(callback)
+  if (inAFC)
+    AFC.onRender(callback)
   else
     callback()
 }
@@ -170,31 +157,28 @@ export function onRender(callback: () => void): void {
  * Returns reactive state.
  * Changes to the state will cause the component to be updated.
  */
-export function reactive<T extends { [key: string]: any }>(state: T): T {
-  if (isConstructing) {
-    return original.reactive<T>(state)
-  }
-  else {
-    const setState = useState<{}>()[1]
+export function reactive<T extends State>(state: T): T {
+  if (inAFC) return AFC.reactive<T>(state)
+  
+  const setState = useState<{}>()[1]
 
-    return onceCreated<T>(() => {
-      const value = { ...state }
-      const obj = {} as T
-      for (const key in value) {
-        Object.defineProperty(obj, key, {
-          get: () => value[key],
-          set(newValue: any) {
-            if (value[key] === newValue) return
-            value[key] = newValue
-            setState({})
-          },
-          enumerable: true,
-          configurable: false
-        })
-      }
-      return obj
-    })
-  }
+  return onceCreated<T>(() => {
+    const value = { ...state }
+    const obj = {} as T
+    for (const key in value) {
+      Object.defineProperty(obj, key, {
+        get: () => value[key],
+        set(newValue: any) {
+          if (value[key] === newValue) return
+          value[key] = newValue
+          setState({})
+        },
+        enumerable: true,
+        configurable: false
+      })
+    }
+    return obj
+  })
 }
 
 /**
@@ -205,30 +189,25 @@ export function reactive<T extends { [key: string]: any }>(state: T): T {
  * When the `value` changes, the component is updated
  */
 export function ref<T>(initial: T, isReactive = true): Ref<T> {
-  if (isConstructing) {
-    return original.ref<T>(initial, isReactive)
-  }
-  else {
-    if (!isReactive)
-      return useRef({ value: initial }).current
+  if (inAFC) return AFC.ref<T>(initial, isReactive)
+  if (!isReactive) return useRef({ value: initial }).current
 
-    const setState = useState<{}>()[1]
+  const setState = useState<{}>()[1]
 
-    return onceCreated(() => {
-      let obj = initial
+  return onceCreated(() => {
+    let obj = initial
 
-      return {
-        get value(): T {
-          return obj
-        },
-        set value(newVal: T) {
-          if (obj === newVal) return
-          obj = newVal
-          setState({})
-        }
+    return {
+      get value(): T {
+        return obj
+      },
+      set value(newVal: T) {
+        if (obj === newVal) return
+        obj = newVal
+        setState({})
       }
-    })
-  }
+    }
+  })
 }
 
 /**
@@ -236,43 +215,33 @@ export function ref<T>(initial: T, isReactive = true): Ref<T> {
  *
  * Returns wrapped redux actions to use it without dispatcher
  */
-export function useActions
-<T extends { [key: string]: (arg: any) => any }>
-(actions: T): T {
-  if (isConstructing) {
-    return original.useActions<T>(actions)
-  }
-  else {
-    const dispatch = useDispatch()
-    return onceCreated(() => {
-      const obj = {} as T
-      for (const name in actions)
-        obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
+export function useActions<T extends Actions>(actions: T): T {
+  if (inAFC) return AFC.useActions<T>(actions)
+  
+  const dispatch = useDispatch()
+  return onceCreated(() => {
+    const obj = {} as T
+    for (const name in actions)
+      obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
 
-      return obj
-    })
-  }
+    return obj
+  })
 }
 
 /**
  * _Compatible with non-afc components_
  *
  * Subscribes to redux-store changes and gets values depending on the passed configuration
- * @param config - object of the type `{key: selector}`
+ * @param selectors - object of the type `{ key: selector }`
  */
-export function useRedux
-<T extends { [key: string]: (state: any) => any }>
-(config: T) {
-  if (isConstructing) {
-    return original.useRedux<T>(config)
-  }
-  else {
-    const state = {} as { [key in keyof T]: ReturnType<T[key]> }
-    for (const name in config)
-      state[name] = useSelector(config[name])
+export function useRedux<T extends ReduxSelectors>(selectors: T) {
+  if (inAFC) return AFC.useRedux<T>(selectors)
+  
+  const state = {} as { [key in keyof T]: ReturnType<T[key]> }
+  for (const name in selectors)
+    state[name] = useSelector(selectors[name])
 
-    return state
-  }
+  return state
 }
 
 export type { AFC } from './types'

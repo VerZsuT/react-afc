@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
 import { addToRenderAndCall, currentData, getForceUpdate, resetData, setData } from './lib'
-import type { Constructable, Constructor, Data, IInjectable, Ref, StateReturns, StateSetters } from './types'
+import type { Actions, Constructable, Constructor, Data, IInjectable, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
 
 /**
  * Returns a component with constructor functionality
@@ -32,7 +32,7 @@ export function afc<P>(constructor: Constructor<P>): FC<P> {
       beforeRender: () => null,
       events: {},
       render: () => null,
-      props: {...props}
+      props: { ...props }
     }
     
     setData(refData)
@@ -53,22 +53,23 @@ export function afcMemo<P>(constructor: Constructor<P>) {
  * Creates a state
  *
  * _Before applying the state changes, superficially compares the previous and new state_
- * @returns - {state, set<Key>}
+ * @returns - { state, set<Key> }
  */
-export function createState<T extends { [key: string]: any }>(initial: T): StateReturns<T> {
+export function createState<T extends State>(initial: T): StateReturns<T> {
   const forceUpdate = getForceUpdate()
   const setters = {} as StateSetters<T>
-  const state = {...initial}
+  const state = { ...initial }
 
   for (const name in initial) {
-    setters[`set${name[0].toUpperCase()}${name.slice(1)}`] = (value: any) => {
+    const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
+    setters[setterName] = (value: any) => {
       if (state[name] === value) return
       state[name] = value
       forceUpdate()
     }
   }
 
-  return {state, ...setters}
+  return { state, ...setters }
 }
 
 /**
@@ -204,9 +205,9 @@ export function onRender(callback: () => void): void {
  * Returns reactive state.
  * Changes to the state will cause the component to be updated.
  */
-export function reactive<T extends { [key: string]: any }>(state: T): T {
+export function reactive<T extends State>(state: T): T {
   const forceUpdate = getForceUpdate()
-  const value = {...state}
+  const value = { ...state }
   const obj = {} as T
 
   for (const key in value) {
@@ -219,8 +220,7 @@ export function reactive<T extends { [key: string]: any }>(state: T): T {
         value[key] = newVal
         forceUpdate()
       },
-      enumerable: true,
-      configurable: false
+      enumerable: true
     })
   }
 
@@ -253,9 +253,7 @@ export function ref<T>(initial: T, isReactive = true): Ref<T> {
 /**
  * Returns wrapped redux actions to use it without dispatcher
  */
-export function useActions
-<T extends { [key: string]: (arg: any) => any }>
-(actions: T): T {
+export function useActions<T extends Actions>(actions: T): T {
   const dispatch = getDispatch()
   const obj = {} as T
 
@@ -267,11 +265,9 @@ export function useActions
 
 /**
  * Subscribes to redux-store changes and gets values depending on the passed configuration
- * @param config - object of the type `{key: selector}`
+ * @param config - object of the type `{ key: selector }`
  */
-export function useRedux
-<T extends { [key: string]: (state: any) => any }>
-(config: T) {
+export function useRedux<T extends ReduxSelectors>(config: T) {
   const state = {} as { [key in keyof T]: ReturnType<T[key]> }
 
   addToRenderAndCall(() => {

@@ -24,7 +24,7 @@ export function createState<T extends State>(initial: T): StateReturns<T> {
 
   const [state, setters] = onceCreated(() => {
     const value = { ...initial }
-    const obj = {} as StateSetters<T>
+    const obj = <StateSetters<T>> {}
     for (const name in value) {
       const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
       obj[setterName] = (newValue: any) => {
@@ -46,7 +46,7 @@ export function createState<T extends State>(initial: T): StateReturns<T> {
  */
 export function getDispatch<T = Dispatch<AnyAction>>(): T {
   if (inAFC) return AFC.getDispatch<T>()
-  return useDispatch() as T
+  return <T> useDispatch()
 }
 
 /**
@@ -84,7 +84,7 @@ export function onceCreated<T>(factory: () => T): T {
 
   const ref = useRef({
     isCreated: false,
-    value: null as T
+    value: <T> null
   })
 
   if (!ref.current.isCreated) {
@@ -164,7 +164,7 @@ export function reactive<T extends State>(state: T): T {
 
   return onceCreated<T>(() => {
     const value = { ...state }
-    const obj = {} as T
+    const obj = <T> {}
     for (const key in value) {
       Object.defineProperty(obj, key, {
         get: () => value[key],
@@ -220,7 +220,7 @@ export function useActions<T extends Actions>(actions: T): T {
   
   const dispatch = useDispatch()
   return onceCreated(() => {
-    const obj = {} as T
+    const obj = <T> {}
     for (const name in actions)
       obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
 
@@ -237,7 +237,8 @@ export function useActions<T extends Actions>(actions: T): T {
 export function useRedux<T extends ReduxSelectors>(selectors: T) {
   if (inAFC) return AFC.useRedux<T>(selectors)
   
-  const state = {} as { [key in keyof T]: ReturnType<T[key]> }
+  type StateType = { [key in keyof T]: ReturnType<T[key]> }
+  const state = <StateType> {}
   for (const name in selectors)
     state[name] = useSelector(selectors[name])
 

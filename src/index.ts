@@ -11,7 +11,7 @@ import type { Actions, Constructable, Constructor, Data, IInjectable, ReduxSelec
  * Returns a component with constructor functionality
  */
 export function afc<P>(constructor: Constructor<P>): FC<P> {
-  return ((props: P): ReactNode => {
+  return <FC<P>> ((props: P): ReactNode => {
     const ref = useRef<Data<P>>()
     let refData = ref.current
 
@@ -25,7 +25,7 @@ export function afc<P>(constructor: Constructor<P>): FC<P> {
         dataProps[key] = props[key]
 
       refData.beforeRender()
-      return refData.render() as JSX.Element
+      return refData.render()
     }
 
     refData = ref.current = {
@@ -39,7 +39,7 @@ export function afc<P>(constructor: Constructor<P>): FC<P> {
     refData.render = constructor(refData.props)
     resetData()
     return refData.render()
-  }) as FC<P>
+  })
 }
 
 /**
@@ -57,7 +57,7 @@ export function afcMemo<P>(constructor: Constructor<P>) {
  */
 export function createState<T extends State>(initial: T): StateReturns<T> {
   const forceUpdate = getForceUpdate()
-  const setters = {} as StateSetters<T>
+  const setters = <StateSetters<T>> {}
   const state = { ...initial }
 
   for (const name in initial) {
@@ -76,7 +76,7 @@ export function createState<T extends State>(initial: T): StateReturns<T> {
  * Returns redux-dispatch
  */
 export function getDispatch<T = Dispatch<AnyAction>>(): T {
-  return (currentData.dispatch ??= addToRenderAndCall(useDispatch)) as T
+  return <T> (currentData.dispatch ??= addToRenderAndCall(useDispatch))
 }
 
 /**
@@ -208,7 +208,7 @@ export function onRender(callback: () => void): void {
 export function reactive<T extends State>(state: T): T {
   const forceUpdate = getForceUpdate()
   const value = { ...state }
-  const obj = {} as T
+  const obj = <T> {}
 
   for (const key in value) {
     Object.defineProperty(obj, key, {
@@ -255,7 +255,7 @@ export function ref<T>(initial: T, isReactive = true): Ref<T> {
  */
 export function useActions<T extends Actions>(actions: T): T {
   const dispatch = getDispatch()
-  const obj = {} as T
+  const obj = <T> {}
 
   for (const name in actions)
     obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
@@ -268,7 +268,8 @@ export function useActions<T extends Actions>(actions: T): T {
  * @param config - object of the type `{ key: selector }`
  */
 export function useRedux<T extends ReduxSelectors>(config: T) {
-  const state = {} as { [key in keyof T]: ReturnType<T[key]> }
+  type StateType = { [key in keyof T]: ReturnType<T[key]> }
+  const state = <StateType> {}
 
   addToRenderAndCall(() => {
     for (const name in config)

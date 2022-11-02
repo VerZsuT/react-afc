@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 
 import type { AnyAction, Dispatch } from 'redux'
 
-export type Actions = { [key: string]: (arg: any) => any }
-export type ReduxSelectors = { [key: string]: (state: any) => any }
-export type State = { [key: string]: any }
+export type Actions = Record<string, (arg: any) => any>
+export type ReduxSelectors = Record<string, (state: any) => any>
+export type State = Record<string, any>
 
 export type RenderFunc = () => ReactNode
 export type Constructor<P> = (props: P) => RenderFunc

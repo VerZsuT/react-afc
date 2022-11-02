@@ -2,10 +2,10 @@ import { useState } from 'react'
 
 import type { Data } from './types'
 
-const initialData = new Proxy({}, {
+const initialData = <Data<{}>> new Proxy({}, {
   get: () => { throw new Error('Attempt to outside call react-afc method') },
   set: () => { throw new Error('Attempt to outside call react-afc method') }
-}) as Data<{}>
+})
 
 export let currentData: Data<any> = initialData
 export let isConstructing = false
@@ -39,4 +39,3 @@ export function getForceUpdate(): () => void {
     return () => stateSetter({})
   })()
 }
-

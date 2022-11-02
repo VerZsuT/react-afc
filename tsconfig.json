@@ -1,21 +1,17 @@
 {
     "compilerOptions": {
       "target": "ESNext",
-      "lib": ["ESNext", "DOM", "DOM.Iterable"],
-      "jsx": "react-jsx",
-      "isolatedModules": true,
       "module": "ESNext",
-      "allowSyntheticDefaultImports": true,
-      "esModuleInterop": true,
-      "sourceMap": false,
-      "strict": true,
-      "noImplicitAny": false,
+      "lib": ["ESNext", "DOM", "DOM.Iterable"],
+      "moduleResolution": "node",
       "outDir": "lib",
       "newLine": "LF",
-      "declaration": true,
-      "moduleResolution": "node",
-      "baseUrl": ".",
-      "pretty": true
+      "isolatedModules": true,
+      "allowSyntheticDefaultImports": true,
+      "esModuleInterop": true,
+      "strict": true,
+      "noImplicitAny": false,
+      "declaration": true
     },
     "include": [
       "src/**/*.ts"

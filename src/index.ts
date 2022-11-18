@@ -10,7 +10,7 @@ import type { Actions, Constructable, Constructor, Data, IInjectable, ReduxSelec
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P>(constructor: Constructor<P>): FC<P> {
+export function afc<P extends object>(constructor: Constructor<P>): FC<P> {
   return <FC<P>> ((props: P): ReactNode => {
     const ref = useRef<Data<P>>()
     let refData = ref.current
@@ -45,7 +45,7 @@ export function afc<P>(constructor: Constructor<P>): FC<P> {
 /**
  * Returns a memo component with constructor functionality
  */
-export function afcMemo<P>(constructor: Constructor<P>) {
+export function afcMemo<P extends object>(constructor: Constructor<P>) {
   return memo(afc<P>(constructor))
 }
 

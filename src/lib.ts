@@ -2,9 +2,14 @@ import { useState } from 'react'
 
 import type { Data } from './types'
 
+const errorHandler = (_: any, name: string | symbol): boolean => {
+  if (['beforeRender', 'forceUpdate', 'dispatch', 'events', 'render', 'props'].includes(name.toString()))
+    throw new Error('Attempt to outside call react-afc method')
+  return false
+}
 const initialData = <Data<{}>> new Proxy({}, {
-  get: () => { throw new Error('Attempt to outside call react-afc method') },
-  set: () => { throw new Error('Attempt to outside call react-afc method') }
+  get: errorHandler,
+  set: errorHandler
 })
 
 export let currentData: Data<any> = initialData

@@ -11,6 +11,9 @@ export type Constructor<P> = (props: P) => RenderFunc
 export type AFC<P> = Constructor<P>
 export type Ref<T> = { value: T }
 
+export type FastProps<P> = { curr: P }
+export type AFCOptions = { lazyPropsUpdate?: boolean }
+
 export interface Constructable<T> {
   new(...args: any[]): T
 }

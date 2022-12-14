@@ -30,6 +30,9 @@ Component
 - [afc](#afcafcmemo)
 - [afcMemo](#afcafcmemo)
 
+- [fafc](#fafcfafcmemo)
+- [fafcMemo](#fafcfafcmemo)
+
 Lifecycle
 
 - [onMount](#onmount)
@@ -80,8 +83,8 @@ and also not to worry about an array of dependencies.
 
 The library is optimized as much as possible.
 
-[`afcMemo`](#afcafcmemo) returns the `memo`-component  
-[`afc`](#afcafcmemo) returns a regular component
+[`afcMemo`](#afcafcmemo)/[`fafcMemo`](#fafcfafcmemo) returns the `memo`-component  
+[`afc`](#afcafcmemo)/[`fafc`](#fafcfafcmemo) returns a regular component
 
 Each render uses one `useRef` hook, and the `prop` variable is also updated (excluding the first render).
 
@@ -503,19 +506,53 @@ const Component = afc(props => {
 ### afc/afcMemo
 
 ```ts
-export function afc<P>(constructor: (props: P) => React.FC): React.FC<P>
-export function afcMemo<P>(constructor: (props: P) => React.FC): React.MemoExoticComponent<React.FC<P>>
+export function afc<P>(constructor: (props: P) => React.FC, options?: AFCOptions): React.FC<P>
+export function afcMemo<P>(constructor: (props: P) => React.FC, options?: AFCOptions): ReturnType<React.memo>
 ```
 
 Accepts a _constructor function_, which should return the usual _component function_.
 
 Returns the wrapped component. Not add an extra node to the virtual DOM.
 
+If you have a problem with the visibility of previous props when they should no longer be,
+then set the `lazyPropsUpdate` flag in `options`
+
 ```jsx
 import { afc } from 'react-afc'
 
 const Component = afc(props => {
   // constructor logic
+
+  function render() {
+    return (
+      <div>afc/afcMemo</div>
+    )
+  }
+
+  return render
+})
+```
+
+### fafc/fafcMemo
+
+```ts
+export function fafc<P>(constructor: (props: FastProps<P>) => React.FC): React.FC<P>
+export function fafcMemo<P>(constructor: (props: FastProps<P>) => React.FC): ReturnType<React.memo>
+type FastProps<P> = { curr: P }
+```
+
+Accepts a _constructor function_, which should return the usual _component function_.
+
+Returns the wrapped component. Not add an extra node to the virtual DOM.
+
+_Faster then `afc/afcMemo`_
+
+```jsx
+import { fafc } from 'react-afc'
+
+const Component = fafc(props => {
+  // constructor logic
+  // const { name } = props.curr
 
   function render() {
     return (

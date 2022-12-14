@@ -20,17 +20,14 @@ export function resetData(): void {
   isConstructing = false
 }
 
-export function addToRender(callback: () => void): void {
+export function addToRender<T extends () => any>(callback: T): T {
   const prev = currentData.beforeRender
-  currentData.beforeRender = () => {
-    prev()
-    callback()
-  }
+  currentData.beforeRender = () => { prev(); callback() }
+  return callback
 }
 
 export function addToRenderAndCall<T = undefined>(callback: () => T): T {
-  addToRender(callback)
-  return callback()
+  return addToRender(callback)()
 }
 
 export function getForceUpdate(): () => void {
@@ -38,4 +35,17 @@ export function getForceUpdate(): () => void {
     const stateSetter = addToRenderAndCall(useState)[1]
     return () => stateSetter({})
   })()
+}
+
+export function lazyUpdateProps(source: any, dest: any): void {
+  for (const key in dest) {
+    if (key in source) continue
+    delete dest[key]
+  }
+  fastUpdateProps(source, dest)
+}
+
+export function fastUpdateProps(source: any, dest: any): void {
+  for (const key in source)
+    dest[key] = source[key]
 }

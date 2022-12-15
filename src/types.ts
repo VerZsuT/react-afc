@@ -33,6 +33,7 @@ export interface Data<P> {
   }
   render: RenderFunc
   props: P
+  prevProps?: P
 }
 
 export type StateSetters<T> = {

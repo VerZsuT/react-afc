@@ -18,7 +18,10 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: AFC
     let refData = ref.current
 
     if (refData) {
-      updateProps(props, refData.props)
+      if (refData.prevProps !== props) {
+        updateProps(props, refData.props)
+        refData.prevProps = props
+      }
       refData.beforeRender()
       return refData.render()
     }
@@ -27,6 +30,7 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: AFC
       beforeRender: () => null,
       events: {},
       render: () => null,
+      prevProps: props,
       props: { ...props }
     }
     
@@ -44,11 +48,11 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: AFC
  */
 export function fafc<P extends object>(constructor: Constructor<FastProps<P>>): FC<P> {
   return <FC<P>> ((props: P): ReactNode => {
-    const ref = useRef<Data<P>>()
+    const ref = useRef<Data<FastProps<P>>>()
     let refData = ref.current
 
     if (refData) {
-      refData.props = props
+      refData.props.curr = props
       refData.beforeRender()
       return refData.render()
     }
@@ -57,13 +61,11 @@ export function fafc<P extends object>(constructor: Constructor<FastProps<P>>): 
       beforeRender: () => null,
       render: () => null,
       events: {},
-      props
+      props: { curr: props }
     }
     
     setData(refData)
-    refData.render = constructor({
-      get curr() { return refData!.props }
-    })
+    refData.render = constructor(refData.props)
     resetData()
     return refData.render()
   })

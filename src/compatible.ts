@@ -4,7 +4,7 @@ import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } fro
 import { useDispatch, useSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { isConstructing as inAFC } from './lib'
+import { isConstruct as inAFC } from './lib'
 import type { Actions, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
 
 import * as AFC from './index'
@@ -18,7 +18,7 @@ import * as AFC from './index'
  * @returns - { state, set<Key> }
  */
 export function createState<T extends State>(initial: T): StateReturns<T> {
-  if (inAFC) return AFC.createState<T>(initial)
+  if (inAFC()) return AFC.createState<T>(initial)
 
   const setState = useState<{}>()[1]
 
@@ -45,7 +45,7 @@ export function createState<T extends State>(initial: T): StateReturns<T> {
  * Returns redux-dispatch
  */
 export function getDispatch<T = Dispatch<AnyAction>>(): T {
-  if (inAFC) return AFC.getDispatch<T>()
+  if (inAFC()) return AFC.getDispatch<T>()
   return <T> useDispatch()
 }
 
@@ -56,7 +56,7 @@ export function getDispatch<T = Dispatch<AnyAction>>(): T {
  * @returns context getter
  */
 export function handleContext<T>(context: Context<T>): () => T {
-  if (inAFC) return AFC.handleContext<T>(context)
+  if (inAFC()) return AFC.handleContext<T>(context)
 
   const value = useContext(context)
   return () => value
@@ -68,7 +68,7 @@ export function handleContext<T>(context: Context<T>): () => T {
  * Returns the getter of the memoized value
  */
 export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T {
-  if (inAFC) return AFC.memoized<T>(factory, depsGetter)
+  if (inAFC()) return AFC.memoized<T>(factory, depsGetter)
 
   const value = useMemo(factory, depsGetter())
   return () => value
@@ -80,7 +80,7 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T 
  * Ensures that the value of the variable will be calculated **once** in _afc_ and _non-afc_ components
  */
 export function onceCreated<T>(factory: () => T): T {
-  if (inAFC) return factory()
+  if (inAFC()) return factory()
 
   const ref = useRef({
     isCreated: false,
@@ -105,7 +105,7 @@ export function onceCreated<T>(factory: () => T): T {
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function onDestroy(callback: () => void): void {
-  if (inAFC)
+  if (inAFC())
     AFC.onDestroy(callback)
   else
     useEffect(() => callback, [])
@@ -119,7 +119,7 @@ export function onDestroy(callback: () => void): void {
  * _Analog of `useLayoutEffect(callback, [])`_
  */
 export function onDraw(callback: () => void): void {
-  if (inAFC)
+  if (inAFC())
     AFC.onDraw(callback)
   else
     useLayoutEffect(callback, [])
@@ -133,7 +133,7 @@ export function onDraw(callback: () => void): void {
  * _Analog of `useEffect(callback, [])`_
  */
 export function onMount(callback: () => void): void {
-  if (inAFC)
+  if (inAFC())
     AFC.onMount(callback)
   else
     useEffect(callback, [])
@@ -145,7 +145,7 @@ export function onMount(callback: () => void): void {
  * Calls the function immediately in constructor and before each render
  */
 export function onRender(callback: () => void): void {
-  if (inAFC)
+  if (inAFC())
     AFC.onRender(callback)
   else
     callback()
@@ -158,7 +158,7 @@ export function onRender(callback: () => void): void {
  * Changes to the state will cause the component to be updated.
  */
 export function reactive<T extends State>(state: T): T {
-  if (inAFC) return AFC.reactive<T>(state)
+  if (inAFC()) return AFC.reactive<T>(state)
   
   const setState = useState<{}>()[1]
 
@@ -189,7 +189,7 @@ export function reactive<T extends State>(state: T): T {
  * When the `value` changes, the component is updated
  */
 export function ref<T>(initial: T, isReactive = true): Ref<T> {
-  if (inAFC) return AFC.ref<T>(initial, isReactive)
+  if (inAFC()) return AFC.ref<T>(initial, isReactive)
   if (!isReactive) return useRef({ value: initial }).current
 
   const setState = useState<{}>()[1]
@@ -216,7 +216,7 @@ export function ref<T>(initial: T, isReactive = true): Ref<T> {
  * Returns wrapped redux actions to use it without dispatcher
  */
 export function useActions<T extends Actions>(actions: T): T {
-  if (inAFC) return AFC.useActions<T>(actions)
+  if (inAFC()) return AFC.useActions<T>(actions)
   
   const dispatch = useDispatch()
   return onceCreated(() => {
@@ -235,7 +235,7 @@ export function useActions<T extends Actions>(actions: T): T {
  * @param selectors - object of the type `{ key: selector }`
  */
 export function useRedux<T extends ReduxSelectors>(selectors: T) {
-  if (inAFC) return AFC.useRedux<T>(selectors)
+  if (inAFC()) return AFC.useRedux<T>(selectors)
   
   type StateType = { [key in keyof T]: ReturnType<T[key]> }
   const state = <StateType> {}

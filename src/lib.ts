@@ -2,8 +2,9 @@ import { useState } from 'react'
 
 import type { Data } from './types'
 
+const dataProps = ['beforeRender', 'forceUpdate', 'dispatch', 'events', 'render', 'props']
 const errorHandler = (_: any, name: string | symbol): boolean => {
-  if (['beforeRender', 'forceUpdate', 'dispatch', 'events', 'render', 'props'].includes(name.toString()))
+  if (dataProps.includes(name.toString()))
     throw new Error('Attempt to outside call react-afc method')
   return false
 }
@@ -12,17 +13,20 @@ const initialData = <Data<{}>> new Proxy({}, {
   set: errorHandler
 })
 
-export let currentData: Data<any> = initialData
-export let isConstructing = false
+let currentData: Data<any> = initialData
+let construct = false
+
+export const getCurrentData = () => currentData
+export const isConstruct = () => construct
 
 export function setData<T>(data: Data<T>): void {
   currentData = data
-  isConstructing = true
+  construct = true
 }
 
 export function resetData(): void {
   currentData = initialData
-  isConstructing = false
+  construct = false
 }
 
 export function addToRender<T extends () => any>(callback: T): T {
@@ -36,10 +40,11 @@ export function addToRenderAndCall<T = undefined>(callback: () => T): T {
 }
 
 export function getForceUpdate(): () => void {
-  return currentData.forceUpdate ??= (() => {
+  if (!currentData.forceUpdate) {
     const stateSetter = addToRenderAndCall(useState)[1]
-    return () => stateSetter({})
-  })()
+    currentData.forceUpdate = () => stateSetter({})
+  }
+  return currentData.forceUpdate
 }
 
 export function lazyUpdateProps(source: any, dest: any): void {

@@ -4,7 +4,7 @@ import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'r
 import { useDispatch, useSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { addToRenderAndCall, currentData, fastUpdateProps, getForceUpdate, lazyUpdateProps, resetData, setData } from './lib'
+import { addToRenderAndCall, fastUpdateProps, getCurrentData, getForceUpdate, lazyUpdateProps, resetData, setData } from './lib'
 import type { Actions, AFCOptions, Constructable, Constructor, Data, FastProps, IInjectable, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
 
 /**
@@ -114,7 +114,10 @@ export function createState<T extends State>(initial: T): StateReturns<T> {
  * Returns redux-dispatch
  */
 export function getDispatch<T = Dispatch<AnyAction>>(): T {
-  return <T> (currentData.dispatch ??= addToRenderAndCall(useDispatch))
+  const data = getCurrentData()
+  if (!data.dispatch)
+    data.dispatch = addToRenderAndCall(useDispatch)
+  return <T> data.dispatch
 }
 
 /**
@@ -169,7 +172,7 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T 
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function onDestroy(callback: () => void): void {
-  const events = currentData.events
+  const events = getCurrentData().events
 
   if (events.afterUnmount) {
     const prevHandler = events.afterUnmount
@@ -189,7 +192,7 @@ export function onDestroy(callback: () => void): void {
  * _Analog of `useLayoutEffect(callback, [])`_
  */
 export function onDraw(callback: () => void): void {
-  const events = currentData.events
+  const events = getCurrentData().events
 
   if (events.afterDraw) {
     const prevHandler = events.afterDraw
@@ -209,7 +212,7 @@ export function onDraw(callback: () => void): void {
  * _Analog of `useEffect(callback, [])`_
  */
 export function onMount(callback: () => void): void {
-  const events = currentData.events
+  const events = getCurrentData().events
 
   if (events.afterMount) {
     const prevHandler = events.afterMount

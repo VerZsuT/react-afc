@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "description": "Allows you to significantly simplify the optimization of functional react components",
   "keywords": [
     "react",
@@ -34,11 +34,10 @@
   },
   "author": "verzsut",
   "license": "MIT",
-  "dependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "react-redux": ">=8.0.0",
-    "redux": ">=4.0.0"
+  "peerDependencies": {
+    "react": "18.x.x",
+    "react-redux": "8.x.x",
+    "redux": "4.x.x"
   },
   "devDependencies": {
     "@types/react": "^18.0.26",

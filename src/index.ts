@@ -1,16 +1,18 @@
-import type { Context, FC, ReactNode } from 'react'
+import type { Context, DependencyList, EffectCallback, FC, ReactNode } from 'react'
 import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
 import { addToRenderAndCall, fastUpdateProps, getCurrentData, getForceUpdate, lazyUpdateProps, resetData, setData } from './lib'
-import type { Actions, AFCOptions, Constructable, Constructor, Data, FastProps, IInjectable, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
+import type { Actions, AFC, AFCOptions, Constructable, Data, FAFC, FastProps, IInjectable, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
+
+export type { AFC, FAFC } from './types'
 
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P extends object>(constructor: Constructor<P>, options?: AFCOptions): FC<P> {
+export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions): FC<P> {
   const updateProps = options?.lazyPropsUpdate ? lazyUpdateProps : fastUpdateProps
 
   return <FC<P>> ((props: P): ReactNode => {
@@ -28,7 +30,7 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: AFC
 
     refData = ref.current = {
       beforeRender: () => null,
-      events: {},
+      callbacks: {},
       render: () => null,
       prevProps: props,
       props: { ...props }
@@ -46,7 +48,7 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: AFC
  * 
  * _Faster then common `afc`_
  */
-export function fafc<P extends object>(constructor: Constructor<FastProps<P>>): FC<P> {
+export function fafc<P extends object>(constructor: FAFC<P>): FC<P> {
   return <FC<P>> ((props: P): ReactNode => {
     const ref = useRef<Data<FastProps<P>>>()
     let refData = ref.current
@@ -60,7 +62,7 @@ export function fafc<P extends object>(constructor: Constructor<FastProps<P>>): 
     refData = ref.current = {
       beforeRender: () => null,
       render: () => null,
-      events: {},
+      callbacks: {},
       props: { curr: props }
     }
     
@@ -74,7 +76,7 @@ export function fafc<P extends object>(constructor: Constructor<FastProps<P>>): 
 /**
  * Returns a memo component with constructor functionality
  */
-export function afcMemo<P extends object>(constructor: Constructor<P>, options?: AFCOptions) {
+export function afcMemo<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
   return memo(afc<P>(constructor, options))
 }
 
@@ -83,7 +85,7 @@ export function afcMemo<P extends object>(constructor: Constructor<P>, options?:
  * 
  * _Faster then common `afcMemo`_
  */
-export function fafcMemo<P extends object>(constructor: Constructor<FastProps<P>>) {
+export function fafcMemo<P extends object>(constructor: FAFC<P>) {
   return memo(fafc<P>(constructor))
 }
 
@@ -167,22 +169,66 @@ export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T 
 }
 
 /**
+ * _Analog of `useEffect(callback, deps())`_
+ */
+export function effect(callback: EffectCallback, deps?: () => DependencyList): void {
+  const callbacks = getCurrentData().callbacks
+
+  if (callbacks.effect) {
+    const prevHandler = callbacks.effect
+    callbacks.effect = () => {
+      const prevResult = prevHandler()
+      const result = callback()
+      return () => { prevResult?.(); result?.() }
+    }
+    return
+  }
+
+  callbacks.effect = callback
+  addToRenderAndCall(() => {
+    useEffect(callbacks.effect!, deps?.())
+  })
+}
+
+/**
+ * _Analog of `useLayoutEffect(callback, deps())`_
+ */
+export function layoutEffect(callback: EffectCallback, deps?: () => DependencyList): void {
+  const callbacks = getCurrentData().callbacks
+
+  if (callbacks.layoutEffect) {
+    const prevHandler = callbacks.layoutEffect
+    callbacks.layoutEffect = () => {
+      const prevResult = prevHandler()
+      const result = callback()
+      return () => { prevResult?.(); result?.() }
+    }
+    return
+  }
+
+  callbacks.layoutEffect = callback
+  addToRenderAndCall(() => {
+    useLayoutEffect(callbacks.layoutEffect!, deps?.())
+  })
+}
+
+/**
  * Calls the function after unmounting the component
  *
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function onDestroy(callback: () => void): void {
-  const events = getCurrentData().events
+  const callbacks = getCurrentData().callbacks
 
-  if (events.afterUnmount) {
-    const prevHandler = events.afterUnmount
-    events.afterUnmount = () => { prevHandler(); callback() }
+  if (callbacks.afterUnmount) {
+    const prevHandler = callbacks.afterUnmount
+    callbacks.afterUnmount = () => { prevHandler(); callback() }
     return
   }
 
-  events.afterUnmount = callback
+  callbacks.afterUnmount = callback
   addToRenderAndCall(() => {
-    useEffect(() => events.afterUnmount, [])
+    useEffect(() => callbacks.afterUnmount, [])
   })
 }
 
@@ -192,17 +238,17 @@ export function onDestroy(callback: () => void): void {
  * _Analog of `useLayoutEffect(callback, [])`_
  */
 export function onDraw(callback: () => void): void {
-  const events = getCurrentData().events
+  const callbacks = getCurrentData().callbacks
 
-  if (events.afterDraw) {
-    const prevHandler = events.afterDraw
-    events.afterDraw = () => { prevHandler(); callback() }
+  if (callbacks.afterDraw) {
+    const prevHandler = callbacks.afterDraw
+    callbacks.afterDraw = () => { prevHandler(); callback() }
     return
   }
 
-  events.afterDraw = callback
+  callbacks.afterDraw = callback
   addToRenderAndCall(() => {
-    useLayoutEffect(events.afterDraw!, [])
+    useLayoutEffect(callbacks.afterDraw!, [])
   })
 }
 
@@ -212,17 +258,17 @@ export function onDraw(callback: () => void): void {
  * _Analog of `useEffect(callback, [])`_
  */
 export function onMount(callback: () => void): void {
-  const events = getCurrentData().events
+  const callbacks = getCurrentData().callbacks
 
-  if (events.afterMount) {
-    const prevHandler = events.afterMount
-    events.afterMount = () => { prevHandler(); callback() }
+  if (callbacks.afterMount) {
+    const prevHandler = callbacks.afterMount
+    callbacks.afterMount = () => { prevHandler(); callback() }
     return
   }
 
-  events.afterMount = callback
+  callbacks.afterMount = callback
   addToRenderAndCall(() => {
-    useEffect(events.afterMount!, [])
+    useEffect(callbacks.afterMount!, [])
   })
 }
 
@@ -308,5 +354,3 @@ export function useRedux<T extends ReduxSelectors>(config: T) {
 
   return state
 }
-
-export type { AFC } from './types'

@@ -4,11 +4,11 @@ import type { Data } from './types'
 
 const dataProps = ['beforeRender', 'forceUpdate', 'dispatch', 'events', 'render', 'props']
 const errorHandler = (_: any, name: string | symbol): boolean => {
-  if (dataProps.includes(name.toString()))
+  if (dataProps.includes(name.toString())) // for react-native
     throw new Error('Attempt to outside call react-afc method')
   return false
 }
-const initialData = <Data<{}>> new Proxy({}, {
+const initialData: Data<{}> = new Proxy({}, {
   get: errorHandler,
   set: errorHandler
 })

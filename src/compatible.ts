@@ -1,4 +1,4 @@
-import type { Context } from 'react'
+import type { Context, DependencyList, EffectCallback } from 'react'
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
@@ -8,6 +8,8 @@ import { isConstruct as inAFC } from './lib'
 import type { Actions, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
 
 import * as AFC from './index'
+
+export type { AFC, FAFC } from './types'
 
 /**
  * _Compatible with non-afc components_
@@ -99,16 +101,37 @@ export function onceCreated<T>(factory: () => T): T {
 
 /**
  * _Compatible with non-afc components_
+ * 
+ * _Analog of `useEffect(callback, deps())`_
+ */
+export function effect(callback: EffectCallback, deps?: () => DependencyList): void {
+  return inAFC()
+    ? AFC.effect(callback, deps)
+    : useEffect(callback, deps?.())
+}
+
+/**
+ * _Compatible with non-afc components_
+ * 
+ * _Analog of `useLayoutEffect(callback, deps())`_
+ */
+export function layoutEffect(callback: EffectCallback, deps?: () => DependencyList): void {
+  return inAFC()
+    ? AFC.layoutEffect(callback, deps)
+    : useLayoutEffect(callback, deps?.())
+}
+
+/**
+ * _Compatible with non-afc components_
  *
  * Calls the function after unmounting the component
  *
  * _Analog of `useEffect(() => callback, [])`_
  */
 export function onDestroy(callback: () => void): void {
-  if (inAFC())
-    AFC.onDestroy(callback)
-  else
-    useEffect(() => callback, [])
+  return inAFC()
+    ? AFC.onDestroy(callback)
+    : useEffect(() => callback, [])
 }
 
 /**
@@ -119,10 +142,9 @@ export function onDestroy(callback: () => void): void {
  * _Analog of `useLayoutEffect(callback, [])`_
  */
 export function onDraw(callback: () => void): void {
-  if (inAFC())
-    AFC.onDraw(callback)
-  else
-    useLayoutEffect(callback, [])
+  return inAFC()
+    ? AFC.onDraw(callback)
+    : useLayoutEffect(callback, [])
 }
 
 /**
@@ -133,10 +155,9 @@ export function onDraw(callback: () => void): void {
  * _Analog of `useEffect(callback, [])`_
  */
 export function onMount(callback: () => void): void {
-  if (inAFC())
-    AFC.onMount(callback)
-  else
-    useEffect(callback, [])
+  return inAFC()
+    ? AFC.onMount(callback)
+    : useEffect(callback, [])
 }
 
 /**
@@ -145,10 +166,9 @@ export function onMount(callback: () => void): void {
  * Calls the function immediately in constructor and before each render
  */
 export function onRender(callback: () => void): void {
-  if (inAFC())
-    AFC.onRender(callback)
-  else
-    callback()
+  return inAFC()
+    ? AFC.onRender(callback)
+    : callback()
 }
 
 /**
@@ -244,5 +264,3 @@ export function useRedux<T extends ReduxSelectors>(selectors: T) {
 
   return state
 }
-
-export type { AFC } from './types'

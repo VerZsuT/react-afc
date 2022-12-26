@@ -38,6 +38,8 @@ Lifecycle
 - [onDestroy](#ondestroy)
 - [onDraw](#ondraw)
 - [onRender](#onrender)
+- [effect](#effect)
+- [layoutEffect](#layouteffect)
 
 State
 
@@ -112,7 +114,7 @@ _See the description below_.
 import { reactive, afcMemo, useActions, useRedux } from 'react-afc'
 import { selectName, actions } from './store'
 
-export const Component = afcMemo(props => {  
+const Component = (props) => {  
   const store = useRedux({
     name: selectName
   })
@@ -157,7 +159,9 @@ export const Component = afcMemo(props => {
   }
 
   return render
-})
+}
+
+export default afcMemo(Component)
 ```
 
 ## Component structure
@@ -165,7 +169,7 @@ export const Component = afcMemo(props => {
 ```jsx
 import { afc } from 'react-afc'
 
-const Component = afc(props => {
+const Component = (props) => {
   // The body of the "constructor".
   // Is called once (before the first render).
   // Hooks only in 'onRender'.
@@ -179,7 +183,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ## State management
@@ -189,7 +195,7 @@ To work with the state, use [`reactive`](#reactive)/[`createState`](#createstate
 ```tsx
 import { afc, createState, reactive, ref } from 'react-afc'
 
-const Component = afc(props => {
+const Component = (props) => {
   const {
     state,
     setAuthor,
@@ -229,7 +235,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 To work with **Redux** use [`useRedux`](#useredux) and [`getDispatch`](#getdispatch)/[`useActions`](#useactions)
@@ -239,7 +247,7 @@ import { afc, useRedux, getDispatch, useActions } from 'react-afc'
 import { actions } from './store'
 import { changeCount, selectCount } from './countSlice'
 
-const Component = afc(props => {
+const Component = (props) => {
   const reduxState = useRedux({
     name: store => store.name.current,
     count: selectCount
@@ -270,7 +278,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ## Working with Context
@@ -283,7 +293,7 @@ _Returns the context **getter**, not the context itself_.
 import { afc, handleContext } from 'react-afc'
 import CountContext from './CountContext'
 
-const Component = afc(props => {
+const Component = (props) => {
   const getCount = handleContext(CountContext)
 
   function calculate() {
@@ -297,7 +307,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ## Using regular hooks in the body of the "constructor"
@@ -306,7 +318,7 @@ const Component = afc(props => {
 import { afc, onRender } from 'react-afc'
 import { commonHook } from './hooks'
 
-const Component = afc(() => {
+const Component = () => {
   let exampleVar = null
 
   onRender(() => {
@@ -322,7 +334,9 @@ const Component = afc(() => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 [`onRender`](#onrender) is called immediately and before each render (so as not to break hooks)
@@ -330,7 +344,7 @@ const Component = afc(() => {
 ```jsx
 import { afc, onRender } from 'react-afc'
 
-const Component = afc(props => {
+const Component = (props) => {
   console.log('Constructor start')
   onRender(() => {
     console.log('onRender')
@@ -344,7 +358,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 In this example, the console output will be:
@@ -400,7 +416,7 @@ const AFCComponent = afc(props => {
   return render
 })
 
-const CommonComponent = props => {
+const CommonComponent = (props) => {
   // Will not cause errors
   handleDocumentClick(() => {
     // any actions
@@ -422,9 +438,11 @@ Unpacking at the declaration will break the updating of the props: `name` and `a
 import { afc } from 'react-afc'
 
                         // Error !!!
-const Component = afc(({ name, age }) => {
+const Component = ({ name, age }) => {
   // ...
-})
+}
+
+export default afc(Component)
 ```
 
 Unpacking `state`, `props` or `reduxState` directly in the constructor body will **freeze** these variables:
@@ -436,7 +454,7 @@ _Unpacking in **render function** or handlers does not have such a problem_
 ```jsx
 import { afc, reactive, useRedux } from 'react-afc'
 
-const Component = afc(props => {
+const Component = (props) => {
   const state = reactive({
     name: 'Aleksandr',
     age: 20
@@ -465,7 +483,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 It is forbidden to use regular hooks in the constructor without the [`onRender`](#onrender) wrapper.
@@ -481,7 +501,7 @@ _Note:_ Use `onRender` only when there is no other way.
 import { useEffect } from 'react'
 import { afc, onRender } from 'react-afc'
 
-const Component = afc(props => {
+const Component = (props) => {
   useEffect(/*...*/) // Error !!!
 
   onRender(() => {
@@ -497,7 +517,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ## API
@@ -505,8 +527,8 @@ const Component = afc(props => {
 ### afc/afcMemo
 
 ```ts
-export function afc<P>(constructor: (props: P) => React.FC, options?: AFCOptions): React.FC<P>
-export function afcMemo<P>(constructor: (props: P) => React.FC, options?: AFCOptions): ReturnType<React.memo>
+export function afc<P>(constructor: AFC<P>, options?: AFCOptions): React.FC<P>
+export function afcMemo<P>(constructor: AFC<P>, options?: AFCOptions): ReturnType<React.memo>
 ```
 
 Accepts a _constructor function_, which should return the usual _component function_.
@@ -519,7 +541,7 @@ then set the `lazyPropsUpdate` flag in `options`
 ```jsx
 import { afc } from 'react-afc'
 
-const Component = afc(props => {
+const Component = (props) => {
   // constructor logic
 
   function render() {
@@ -529,14 +551,16 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### fafc/fafcMemo
 
 ```ts
-export function fafc<P>(constructor: (props: FastProps<P>) => React.FC): React.FC<P>
-export function fafcMemo<P>(constructor: (props: FastProps<P>) => React.FC): ReturnType<React.memo>
+export function fafc<P>(constructor: FAFC<P>): React.FC<P>
+export function fafcMemo<P>(constructor: FAFC<P>): ReturnType<React.memo>
 type FastProps<P> = { curr: P }
 ```
 
@@ -549,9 +573,10 @@ _Faster then `afc/afcMemo`_
 ```jsx
 import { fafc } from 'react-afc'
 
-const Component = fafc(props => {
+const Component = (props) => {
   // constructor logic
-  // const { name } = props.curr
+  // IMPORTANT:
+  // const { name } = props.curr 
 
   function render() {
     return (
@@ -560,7 +585,9 @@ const Component = fafc(props => {
   }
 
   return render
-})
+}
+
+export default fafc(Component)
 ```
 
 ### onDestroy
@@ -579,7 +606,7 @@ _The same as `useEffect(() => callback, [])`_
 import { afc, onDestroy } from 'react-afc'
 // import { onDestroy } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   onDestroy(() => {
     document.removeEventListener(/*...*/)
   })
@@ -591,7 +618,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### onMount
@@ -610,7 +639,7 @@ _The same as `useEffect(callback, [])`_
 import { afc, onMount } from 'react-afc'
 // import { onMount } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   onMount(() => {
     document.addEventListener(/*...*/)
   })
@@ -622,7 +651,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### onDraw
@@ -641,7 +672,7 @@ _The same as `useLayoutEffect(() => {...}, [])`_
 import { afc, onDraw } from 'react-afc'
 // import { onDraw } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   onDraw(() => {
     document.addEventListener(/*...*/)
   })
@@ -653,7 +684,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### memoized
@@ -668,7 +701,7 @@ Creates a memoized value getter
 import { afc, memoized, reactive } from 'react-afc'
 // import { memoized } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   const state = reactive({
     count: 0,
     mult: 0
@@ -686,7 +719,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### createState
@@ -705,7 +740,7 @@ _Has a superficial comparison of objects_.
 import { afc, createState } from 'react-afc'
 // import { createState } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   const { state, setName, setAge } = createState({
     name: 'Boris',
     age: 30
@@ -728,7 +763,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### reactive
@@ -746,7 +783,7 @@ When it is changed, the component is updated.
 import { afc, reactive } from 'react-afc'
 // import { reactive } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   const state = reactive({
     count: 0
   })
@@ -772,7 +809,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### ref
@@ -790,7 +829,7 @@ When the value of the link changes, the component will be updated.
 import { afc, ref } from 'react-afc'
 // import { ref } from 'react-afc/compatible'
 
-const Component = afc(props => {
+const Component = (props) => {
   const count = ref(0)
   const text = ref(null)
 
@@ -810,7 +849,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### onRender
@@ -829,7 +870,7 @@ import { afc, onRender } from 'react-afc'
 
 import { anyCommonHook } from './hooks'
 
-const Component = afc(props => {
+const Component = (props) => {
   onRender(() => {
     useEffect(/*...*/)
     anyCommonHook()
@@ -840,7 +881,67 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
+```
+
+### effect
+
+```ts
+export function effect(callback: React.EffectCallback, deps?: () => React.DependencyList): void
+```
+
+Analog `useEffect(callback, deps())`
+
+```jsx
+import { afc, effect } from 'react-afc'
+// import { effect } from 'react-afc/compatible'
+
+const Component = (props) => {
+  let dependency = 0
+
+  effect(() => {
+    // any actions
+  }, () => [dependency])
+
+  function render() {
+    return <p>onRender</p>
+  }
+
+  return render
+}
+
+export default afc(Component)
+```
+
+### layoutEffect
+
+```ts
+export function layoutEffect(callback: React.EffectCallback, deps?: () => React.DependencyList): void
+```
+
+Analog `useLayoutEffect(callback, deps())`
+
+```jsx
+import { afc, layoutEffect } from 'react-afc'
+// import { layoutEffect } from 'react-afc/compatible'
+
+const Component = (props) => {
+  let dependency = 0
+
+  layoutEffect(() => {
+    // any actions
+  }, () => [dependency])
+
+  function render() {
+    return <p>onRender</p>
+  }
+
+  return render
+}
+
+export default afc(Component)
 ```
 
 ### handleContext
@@ -859,7 +960,7 @@ import { afc, handleContext } from 'react-afc'
 
 import { NameContext } from './NameContext'
 
-const Component = afc(props => {
+const Component = (props) => {
   const getContext = handleContext(NameContext)
 
   function greet() {
@@ -874,7 +975,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### useRedux
@@ -895,7 +998,7 @@ import { afc, useRedux } from 'react-afc'
 
 import { selectName, selectAge } from './personSlice'
 
-const Component = afc(props => {
+const Component = (props) => {
   const store = useRedux({
     name: selectName,
     age: selectAge,
@@ -913,7 +1016,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### getDispatch
@@ -932,7 +1037,7 @@ import { afc, getDispatch } from 'react-afc'
 
 import { changeName, changeAge } from './personSlice'
 
-const Component = afc(props => {
+const Component = (props) => {
   const dispatch = getDispatch()
 
   function onChangeName(value) {
@@ -952,7 +1057,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### useActions
@@ -971,7 +1078,7 @@ import { afc, useActions } from 'react-afc'
 
 import { actions } from './store'
 
-const Component = afc(props => {
+const Component = (props) => {
   const { changeCount } = useActions(actions)
 
   function setCountToFive() {
@@ -987,7 +1094,9 @@ const Component = afc(props => {
   }
 
   return render
-})
+}
+
+export default afc(Component)
 ```
 
 ### Injectable

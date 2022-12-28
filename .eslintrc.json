@@ -32,7 +32,6 @@
     "camelcase": ["warn", { "properties": "always" }],
     "jsx-quotes": ["error", "prefer-single"],
     "indent": ["error", 2],
-    "no-empty-function": "warn",
     "no-extra-bind": "warn",
     "no-extra-label": "warn",
     "no-invalid-this": "warn",
@@ -90,6 +89,7 @@
         "caseInsensitive": true
       }
     }],
+    "no-empty-function": "off",
     "import/namespace": "off",
     "import/no-unresolved": "off",
     "react/react-in-jsx-scope": "off",
@@ -101,6 +101,7 @@
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-var-requires": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/consistent-type-imports": "warn",
     "@typescript-eslint/no-unused-vars": ["warn", { "vars": "all", "args": "after-used", "varsIgnorePattern": "_+" }]
   }

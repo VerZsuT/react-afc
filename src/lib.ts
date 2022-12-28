@@ -13,20 +13,16 @@ const initialData: Data<{}> = new Proxy({}, {
   set: errorHandler
 })
 
+
 let currentData: Data<any> = initialData
-let construct = false
 
-export const getCurrentData = () => currentData
-export const isConstruct = () => construct
+export const getData = () => currentData
+export const isConstruct = () => currentData !== initialData
 
-export function setData<T>(data: Data<T>): void {
+export function withData(data: Data<any>, callback: () => void): void {
   currentData = data
-  construct = true
-}
-
-export function resetData(): void {
+  callback()
   currentData = initialData
-  construct = false
 }
 
 export function addToRender<T extends () => any>(callback: T): T {
@@ -47,15 +43,16 @@ export function getForceUpdate(): () => void {
   return currentData.forceUpdate
 }
 
-export function lazyUpdateProps(source: any, dest: any): void {
+export function lazyUpdateProps<DestType>(source: any, dest: DestType): DestType {
   for (const key in dest) {
     if (key in source) continue
     delete dest[key]
   }
-  fastUpdateProps(source, dest)
+  return fastUpdateProps(source, dest)
 }
 
-export function fastUpdateProps(source: any, dest: any): void {
+export function fastUpdateProps<DestType>(source: any, dest: DestType): DestType {
   for (const key in source)
     dest[key] = source[key]
+  return dest
 }

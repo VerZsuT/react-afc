@@ -1,75 +1,72 @@
-import type { Context, DependencyList, EffectCallback, FC, ReactNode } from 'react'
-import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import React from 'react'
 
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { addToRenderAndCall, fastUpdateProps, getCurrentData, getForceUpdate, lazyUpdateProps, resetData, setData } from './lib'
-import type { Actions, AFC, AFCOptions, Constructable, Data, FAFC, FastProps, IInjectable, ReduxSelectors, Ref, State, StateReturns, StateSetters } from './types'
+import { addToRenderAndCall, fastUpdateProps, getData, getForceUpdate, lazyUpdateProps, withData } from './lib'
+import type { Actions, AFC, AFCOptions, CommonState, Constructable, Data, FAFC, FastProps, IInjectable, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
 
 export type { AFC, FAFC } from './types'
 
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions): FC<P> {
+export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions): React.FC<P> {
   const updateProps = options?.lazyPropsUpdate ? lazyUpdateProps : fastUpdateProps
 
-  return <FC<P>> ((props: P): ReactNode => {
-    const ref = useRef<Data<P>>()
-    let refData = ref.current
+  return <React.FC<P>> ((props: P): React.ReactNode => {
+    const ref = React.useRef<Data<P>>()
+    let data = ref.current
 
-    if (refData) {
-      if (refData.prevProps !== props) {
-        updateProps(props, refData.props)
-        refData.prevProps = props
-      }
-      refData.beforeRender()
-      return refData.render()
+    if (data) {
+      if (data.prevProps !== props)
+        data.prevProps = updateProps(props, data.props)
+      data.beforeRender()
+      return data.render()
     }
 
-    refData = ref.current = {
-      beforeRender: () => null,
+    ref.current = data = {
+      beforeRender() {},
       callbacks: {},
-      render: () => null,
+      render() { return null },
       prevProps: props,
       props: { ...props }
     }
     
-    setData(refData)
-    refData.render = constructor(refData.props)
-    resetData()
-    return refData.render()
+    withData(data, () => {
+      data!.render = constructor(data!.props)
+    })
+    return data.render()
   })
 }
 
 /**
  * Returns a component with constructor functionality
  * 
- * _Faster then common `afc`_
+ * _Updated faster then `afc`_
  */
-export function fafc<P extends object>(constructor: FAFC<P>): FC<P> {
-  return <FC<P>> ((props: P): ReactNode => {
-    const ref = useRef<Data<FastProps<P>>>()
-    let refData = ref.current
+export function fafc<P extends object>(constructor: FAFC<P>): React.FC<P> {
+  return <React.FC<P>> ((props: P): React.ReactNode => {
+    const ref = React.useRef<Data<FastProps<P>>>()
+    let data = ref.current
 
-    if (refData) {
-      refData.props.curr = props
-      refData.beforeRender()
-      return refData.render()
+    if (data) {
+      data.props.curr = props
+      data.beforeRender()
+      return data.render()
     }
 
-    refData = ref.current = {
-      beforeRender: () => null,
-      render: () => null,
+    ref.current = data = {
+      beforeRender() {},
+      render() { return null },
       callbacks: {},
       props: { curr: props }
     }
     
-    setData(refData)
-    refData.render = constructor(refData.props)
-    resetData()
-    return refData.render()
+    withData(data, () => {
+      data!.render = constructor(data!.props)
+    })
+    return data.render()
   })
 }
 
@@ -77,27 +74,27 @@ export function fafc<P extends object>(constructor: FAFC<P>): FC<P> {
  * Returns a memo component with constructor functionality
  */
 export function afcMemo<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
-  return memo(afc<P>(constructor, options))
+  return React.memo<P>(afc<P>(constructor, options))
 }
 
 /**
  * Returns a memo component with constructor functionality
  * 
- * _Faster then common `afcMemo`_
+ * _Updates faster then `afc`_
  */
 export function fafcMemo<P extends object>(constructor: FAFC<P>) {
-  return memo(fafc<P>(constructor))
+  return React.memo<P>(fafc<P>(constructor))
 }
 
 /**
- * Creates a state
+ * Creates a state from object
  *
  * _Before applying the state changes, superficially compares the previous and new state_
  * @returns - { state, set<Key> }
  */
-export function createState<T extends State>(initial: T): StateReturns<T> {
+export function useObjectState<T extends State>(initial: T): ObjectState<T> {
   const forceUpdate = getForceUpdate()
-  const setters = <StateSetters<T>> {}
+  const setters = <ObjectStateSetters<T>> {}
   const state = { ...initial }
 
   for (const name in initial) {
@@ -112,24 +109,33 @@ export function createState<T extends State>(initial: T): StateReturns<T> {
   return { state, ...setters }
 }
 
+export function useState<T = undefined>(initial: T): CommonState<T> {
+  const stateValue: CommonState<T>[0] = { val: initial }
+  const forceUpdate = getForceUpdate()
+  const stateSetter = (value: T) => {
+    if (value === stateValue.val) return
+    stateValue.val = value
+    forceUpdate()
+  }
+
+  return [stateValue, stateSetter]
+}
+
 /**
  * Returns redux-dispatch
  */
-export function getDispatch<T = Dispatch<AnyAction>>(): T {
-  const data = getCurrentData()
-  if (!data.dispatch)
-    data.dispatch = addToRenderAndCall(useDispatch)
-  return <T> data.dispatch
+export function useDispatch<T = Dispatch<AnyAction>>(): T {
+  return <T> (getData().dispatch ||= addToRenderAndCall(reduxUseDispatch))
 }
 
 /**
  * Subscribes to context changes
- * @returns context getter
+ * @returns `{ val: <context_value> }`
  */
-export function handleContext<T>(context: Context<T>): () => T {
-  let value: T
-  addToRenderAndCall(() => value = useContext(context))
-  return () => value
+export function useContext<T>(context: React.Context<T>): { val: T } {
+  const value = <{ val: T }> {}
+  addToRenderAndCall(() => value.val = React.useContext(context))
+  return value
 }
 
 /**
@@ -162,17 +168,21 @@ export function inject<T extends IInjectable>(Type: T): InstanceType<T> {
 /**
  * Returns the getter of the memoized value
  */
-export function memoized<T>(factory: () => T, depsGetter: () => any[]): () => T {
+export function useMemo<T>(factory: () => T, depsGetter: () => any[]): () => T {
   let value: T
-  addToRenderAndCall(() => value = useMemo(factory, depsGetter()))
+  addToRenderAndCall(() => value = React.useMemo(factory, depsGetter()))
   return () => value
+}
+
+export function useForceUpdate(): () => void {
+  return getForceUpdate()
 }
 
 /**
  * _Analog of `useEffect(callback, deps())`_
  */
-export function effect(callback: EffectCallback, deps?: () => DependencyList): void {
-  const callbacks = getCurrentData().callbacks
+export function useEffect(callback: React.EffectCallback, deps?: () => React.DependencyList): void {
+  const callbacks = getData().callbacks
 
   if (callbacks.effect) {
     const prevHandler = callbacks.effect
@@ -186,15 +196,15 @@ export function effect(callback: EffectCallback, deps?: () => DependencyList): v
 
   callbacks.effect = callback
   addToRenderAndCall(() => {
-    useEffect(callbacks.effect!, deps?.())
+    React.useEffect(callbacks.effect!, deps?.())
   })
 }
 
 /**
  * _Analog of `useLayoutEffect(callback, deps())`_
  */
-export function layoutEffect(callback: EffectCallback, deps?: () => DependencyList): void {
-  const callbacks = getCurrentData().callbacks
+export function useLayoutEffect(callback: React.EffectCallback, deps?: () => React.DependencyList): void {
+  const callbacks = getData().callbacks
 
   if (callbacks.layoutEffect) {
     const prevHandler = callbacks.layoutEffect
@@ -208,7 +218,7 @@ export function layoutEffect(callback: EffectCallback, deps?: () => DependencyLi
 
   callbacks.layoutEffect = callback
   addToRenderAndCall(() => {
-    useLayoutEffect(callbacks.layoutEffect!, deps?.())
+    React.useLayoutEffect(callbacks.layoutEffect!, deps?.())
   })
 }
 
@@ -217,8 +227,8 @@ export function layoutEffect(callback: EffectCallback, deps?: () => DependencyLi
  *
  * _Analog of `useEffect(() => callback, [])`_
  */
-export function onDestroy(callback: () => void): void {
-  const callbacks = getCurrentData().callbacks
+export function useOnDestroy(callback: () => void): void {
+  const callbacks = getData().callbacks
 
   if (callbacks.afterUnmount) {
     const prevHandler = callbacks.afterUnmount
@@ -228,7 +238,7 @@ export function onDestroy(callback: () => void): void {
 
   callbacks.afterUnmount = callback
   addToRenderAndCall(() => {
-    useEffect(() => callbacks.afterUnmount, [])
+    React.useEffect(() => callbacks.afterUnmount, [])
   })
 }
 
@@ -237,8 +247,8 @@ export function onDestroy(callback: () => void): void {
  *
  * _Analog of `useLayoutEffect(callback, [])`_
  */
-export function onDraw(callback: () => void): void {
-  const callbacks = getCurrentData().callbacks
+export function useOnDraw(callback: () => void): void {
+  const callbacks = getData().callbacks
 
   if (callbacks.afterDraw) {
     const prevHandler = callbacks.afterDraw
@@ -248,7 +258,7 @@ export function onDraw(callback: () => void): void {
 
   callbacks.afterDraw = callback
   addToRenderAndCall(() => {
-    useLayoutEffect(callbacks.afterDraw!, [])
+    React.useLayoutEffect(callbacks.afterDraw!, [])
   })
 }
 
@@ -257,8 +267,8 @@ export function onDraw(callback: () => void): void {
  *
  * _Analog of `useEffect(callback, [])`_
  */
-export function onMount(callback: () => void): void {
-  const callbacks = getCurrentData().callbacks
+export function useOnMount(callback: () => void): void {
+  const callbacks = getData().callbacks
 
   if (callbacks.afterMount) {
     const prevHandler = callbacks.afterMount
@@ -268,14 +278,14 @@ export function onMount(callback: () => void): void {
 
   callbacks.afterMount = callback
   addToRenderAndCall(() => {
-    useEffect(callbacks.afterMount!, [])
+    React.useEffect(callbacks.afterMount!, [])
   })
 }
 
 /**
  * Calls the function immediately in constructor and before each render
  */
-export function onRender(callback: () => void): void {
+export function useOnRender(callback: () => void): void {
   addToRenderAndCall(callback)
 }
 
@@ -283,7 +293,7 @@ export function onRender(callback: () => void): void {
  * Returns reactive state.
  * Changes to the state will cause the component to be updated.
  */
-export function reactive<T extends State>(state: T): T {
+export function useReactive<T extends State>(state: T): T {
   const forceUpdate = getForceUpdate()
   const value = { ...state }
   const obj = <T> {}
@@ -306,19 +316,21 @@ export function reactive<T extends State>(state: T): T {
 /**
  * Creates an object of the form `{ value: <ref_value> }`.
  *
- * When the `value` changes, the component is updated
+ * When the `value` changes, the component is updated (`isReactive` is `true`)
+ * 
+ * @param isReactive - _default:_ `false`
  */
-export function ref<T>(initial: T, isReactive = true): Ref<T> {
-  if (!isReactive) return { value: initial }
+export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
+  if (!isReactive) return { current: initial === undefined ? null : initial }
 
   const forceUpdate = getForceUpdate()
   let value = initial
 
   return {
-    get value(): T {
+    get current(): T {
       return value
     },
-    set value(newVal: T) {
+    set current(newVal: T) {
       if (value === newVal) return
       value = newVal
       forceUpdate()
@@ -330,7 +342,7 @@ export function ref<T>(initial: T, isReactive = true): Ref<T> {
  * Returns wrapped redux actions to use it without dispatcher
  */
 export function useActions<T extends Actions>(actions: T): T {
-  const dispatch = getDispatch()
+  const dispatch = reduxUseDispatch()
   const obj = <T> {}
 
   for (const name in actions)
@@ -349,7 +361,7 @@ export function useRedux<T extends ReduxSelectors>(config: T) {
 
   addToRenderAndCall(() => {
     for (const name in config)
-      state[name] = useSelector(config[name])
+      state[name] = reduxUseSelector(config[name])
   })
 
   return state

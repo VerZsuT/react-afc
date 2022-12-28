@@ -4,9 +4,9 @@ import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from
 import type { AnyAction, Dispatch } from 'redux'
 
 import { addToRenderAndCall, fastUpdateProps, getData, getForceUpdate, lazyUpdateProps, withData } from './lib'
-import type { Actions, AFC, AFCOptions, CommonState, Constructable, Data, FAFC, FastProps, IInjectable, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
+import type { Actions, AFC, AFCOptions, CommonState, Constructable, Data, FAFC, FastProps, IInjectable, ObjectState, ObjectStateSetters, PAFC, ReduxSelectors, State } from './types'
 
-export type { AFC, FAFC } from './types'
+export type { AFC, FAFC, PAFC } from './types'
 
 /**
  * Returns a component with constructor functionality
@@ -35,6 +35,35 @@ export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions)
     
     withData(data, () => {
       data!.render = constructor(data!.props)
+    })
+    return data.render()
+  })
+}
+
+/**
+ * Returns a component with constructor functionality
+ * 
+ * _Does not accept or transmit props_
+ */
+export function pafc(constructor: PAFC): React.FC {
+  return <React.FC> ((): React.ReactNode => {
+    const ref = React.useRef<Data<null>>()
+    let data = ref.current
+
+    if (data) {
+      data.beforeRender()
+      return data.render()
+    }
+
+    ref.current = data = {
+      beforeRender() {},
+      callbacks: {},
+      render() { return null },
+      props: null
+    }
+    
+    withData(data, () => {
+      data!.render = constructor()
     })
     return data.render()
   })
@@ -84,6 +113,15 @@ export function afcMemo<P extends object>(constructor: AFC<P>, options?: AFCOpti
  */
 export function fafcMemo<P extends object>(constructor: FAFC<P>) {
   return React.memo<P>(fafc<P>(constructor))
+}
+
+/**
+ * Returns a component with constructor functionality
+ * 
+ * _Does not accept or transmit props_
+ */
+export function pafcMemo(constructor: PAFC) {
+  return React.memo(pafc(constructor))
 }
 
 /**

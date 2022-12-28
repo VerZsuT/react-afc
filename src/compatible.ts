@@ -8,7 +8,7 @@ import type { Actions, DynamicHookResult, HookToWrap, ObjectState, ObjectStateSe
 
 import * as AFC from './index'
 
-export type { AFC, FAFC } from './types'
+export type { AFC, FAFC, PAFC } from './types'
 
 export function wrapStaticHook<T extends HookToWrap>(hook: T): T {
   return <T> ((...args: any[]) => {

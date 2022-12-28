@@ -14,6 +14,7 @@ export type State = Record<string, any>
 export type RenderFunc = () => ReactNode
 export type AFC<P = {}> = Constructor<P>
 export type FAFC<P = {}> = Constructor<FastProps<P>>
+export type PAFC = () => RenderFunc
 
 export type FastProps<P> = { curr: P }
 export type AFCOptions = { lazyPropsUpdate?: boolean }

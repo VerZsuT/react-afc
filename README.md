@@ -27,6 +27,7 @@ Component
 
 - [afc/afcMemo](#afc-afcmemo)
 - [fafc/fafcMemo](#fafc-fafcmemo)
+- [pafc/pafcMemo](#pafc-pafcmemo)
 
 Lifecycle
 
@@ -635,6 +636,37 @@ function Component(props) {
 }
 
 export default fafc(Component)
+```
+
+### pafc pafcMemo
+
+```ts
+export function pafc(constructor: PAFC): React.FC<P>
+export function fafcMemo(constructor: PAFC): ReturnType<React.memo>
+```
+
+Accepts a _constructor function_, which should return the usual _component function_.
+
+Returns the wrapped component. Not add an extra node to the virtual DOM.
+
+_Does not accept or transmit props._
+
+```jsx
+import { pafc } from 'react-afc'
+
+function Component() {
+  // constructor logic
+
+  function render() {
+    return (
+      <div>afc/afcMemo</div>
+    )
+  }
+
+  return render
+}
+
+export default pafc(Component)
 ```
 
 ### useOnDestroy

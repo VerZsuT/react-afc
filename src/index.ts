@@ -380,7 +380,7 @@ export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
  * Returns wrapped redux actions to use it without dispatcher
  */
 export function useActions<T extends Actions>(actions: T): T {
-  const dispatch = reduxUseDispatch()
+  const dispatch = useDispatch()
   const obj = <T> {}
 
   for (const name in actions)

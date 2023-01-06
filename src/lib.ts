@@ -13,16 +13,16 @@ const initialData: Data<{}> = new Proxy({}, {
   set: errorHandler
 })
 
-
 let currentData: Data<any> = initialData
 
 export const getData = () => currentData
 export const isConstruct = () => currentData !== initialData
 
 export function withData(data: Data<any>, callback: () => void): void {
+  const prevData = currentData
   currentData = data
   callback()
-  currentData = initialData
+  currentData = prevData
 }
 
 export function addToRender<T extends () => any>(callback: T): T {

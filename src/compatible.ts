@@ -224,32 +224,11 @@ export function useReactive<T extends State>(state: T): T {
 /**
  * _Compatible with non-afc components_
  *
- * Creates an object of the form `{ value: <ref_value> }`.
- *
- * When the `value` changes, the component is updated (`isReactive` is `true`)
- * 
- * @param isReactive - _default:_ `false`
+ * Creates an object of the form `{ current: <ref_value> }`
  */
-export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
-  if (inAFC()) return AFC.useRef(initial, isReactive)
-  if (!isReactive) return { current: initial === undefined ? null : initial }
-
-  const setState = React.useState<{}>()[1]
-
-  return useOnceCreated(() => {
-    let value = initial
-
-    return {
-      get current(): T {
-        return value
-      },
-      set current(newVal: T) {
-        if (value === newVal) return
-        value = newVal
-        setState({})
-      }
-    }
-  })
+export function useRef<T = null>(initial = null as T): React.RefObject<T> {
+  if (inAFC()) return AFC.useRef(initial)
+  return React.useRef(initial)
 }
 
 /**

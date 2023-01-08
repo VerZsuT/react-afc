@@ -323,28 +323,10 @@ export function useReactive<T extends State>(state: T) {
 }
 
 /**
- * Creates an object of the form `{ value: <ref_value> }`.
- *
- * When the `value` changes, the component is updated (`isReactive` is `true`)
- * 
- * @param isReactive - _default:_ `false`
+ * Creates an object of the form `{ current: <ref_value> }`
  */
-export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
-  if (!isReactive) return { current: initial === undefined ? null : initial }
-
-  const forceUpdate = getForceUpdate()
-  let value = initial
-
-  return {
-    get current(): T {
-      return value
-    },
-    set current(newVal: T) {
-      if (value === newVal) return
-      value = newVal
-      forceUpdate()
-    }
-  }
+export function useRef<T = null>(initial = null as T): React.RefObject<T> {
+  return { current: initial }
 }
 
 /**

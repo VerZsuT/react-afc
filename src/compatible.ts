@@ -4,27 +4,9 @@ import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from
 import type { AnyAction, Dispatch } from 'redux'
 
 import { isConstruct as inAFC } from './lib'
-import type { Actions, DynamicHookResult, HookToWrap, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
+import type { Actions, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
 
 import * as AFC from './index'
-
-export type { AFC, FAFC, PAFC } from './types'
-
-export function wrapStaticHook<T extends HookToWrap>(hook: T): T {
-  return <T> ((...args: any[]) => {
-    let value: any
-    useOnRender(() => value = hook(...args))
-    return value
-  })
-}
-
-export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
-  return ((args: () => Parameters<T>) => {
-    const value = {} as DynamicHookResult<T>
-    useOnRender(() => value.current = hook(...args()))
-    return value
-  })
-}
 
 /**
  * _Compatible with non-afc components_
@@ -35,13 +17,13 @@ export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
  * @returns - { state, set<Key> }
  */
 export function useObjectState<T extends State>(initial: T): ObjectState<T> {
-  if (inAFC()) return AFC.useObjectState<T>(initial)
+  if (inAFC()) return AFC.useObjectState(initial)
 
   const setState = React.useState<{}>()[1]
 
   const [state, setters] = useOnceCreated(() => {
     const value = { ...initial }
-    const obj = <ObjectStateSetters<T>> {}
+    const obj = {} as ObjectStateSetters<T>
     for (const name in value) {
       const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
       obj[setterName] = (newValue: any) => {
@@ -63,7 +45,7 @@ export function useObjectState<T extends State>(initial: T): ObjectState<T> {
  */
 export function useDispatch<T = Dispatch<AnyAction>>(): T {
   if (inAFC()) return AFC.useDispatch<T>()
-  return <T> reduxUseDispatch()
+  return reduxUseDispatch() as T
 }
 
 /**
@@ -72,11 +54,9 @@ export function useDispatch<T = Dispatch<AnyAction>>(): T {
  * Subscribes to context changes
  * @returns `{ val: <context_value> }`
  */
-export function useContext<T>(context: React.Context<T>): { val: T } {
-  if (inAFC()) return AFC.useContext<T>(context)
-
-  const value = { val: React.useContext(context) }
-  return value
+export function useContext<T>(context: React.Context<T>) {
+  if (inAFC()) return AFC.useContext(context)
+  return { val: React.useContext(context) }
 }
 
 /**
@@ -84,11 +64,9 @@ export function useContext<T>(context: React.Context<T>): { val: T } {
  *
  * Returns the getter of the memoized value
  */
-export function useMemo<T>(factory: () => T, depsGetter: () => any[]): () => T {
+export function useMemo<T>(factory: () => T, depsGetter: () => any[]) {
   if (inAFC()) return AFC.useMemo<T>(factory, depsGetter)
-
-  const value = React.useMemo(factory, depsGetter())
-  return () => value
+  return { val: React.useMemo(factory, depsGetter()) }
 }
 
 /**
@@ -96,12 +74,12 @@ export function useMemo<T>(factory: () => T, depsGetter: () => any[]): () => T {
  *
  * Ensures that the value of the variable will be calculated **once** in _afc_ and _non-afc_ components
  */
-export function useOnceCreated<T>(factory: () => T): T {
+export function useOnceCreated<T>(factory: () => T) {
   if (inAFC()) return factory()
 
   const ref = React.useRef({
     isCreated: false,
-    value: <T> null
+    value: null as T
   })
 
   if (!ref.current.isCreated) {
@@ -114,7 +92,12 @@ export function useOnceCreated<T>(factory: () => T): T {
   return ref.current.value
 }
 
-export function useForceUpdate(): () => void {
+/**
+ * _Compatible with non-afc components_
+ * 
+ * Returns a component with constructor functionality
+ */
+export function useForceUpdate() {
   return inAFC()
     ? AFC.useForceUpdate()
     : (() => {
@@ -202,13 +185,13 @@ export function useOnRender(callback: () => void): void {
  * Changes to the state will cause the component to be updated.
  */
 export function useReactive<T extends State>(state: T): T {
-  if (inAFC()) return AFC.useReactive<T>(state)
+  if (inAFC()) return AFC.useReactive(state)
   
   const setState = React.useState<{}>()[1]
 
-  return useOnceCreated<T>(() => {
+  return useOnceCreated(() => {
     const value = { ...state }
-    const obj = <T> {}
+    const obj = {} as T
     for (const key in value) {
       Object.defineProperty(obj, key, {
         get: () => value[key],
@@ -228,32 +211,11 @@ export function useReactive<T extends State>(state: T): T {
 /**
  * _Compatible with non-afc components_
  *
- * Creates an object of the form `{ value: <ref_value> }`.
- *
- * When the `value` changes, the component is updated (`isReactive` is `true`)
- * 
- * @param isReactive - _default:_ `false`
+ * Creates an object of the form `{ current: <ref_value> }`
  */
-export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
-  if (inAFC()) return AFC.useRef<T>(initial, isReactive)
-  if (!isReactive) return { current: initial === undefined ? null : initial }
-
-  const setState = React.useState<{}>()[1]
-
-  return useOnceCreated(() => {
-    let value = initial
-
-    return {
-      get current(): T {
-        return value
-      },
-      set current(newVal: T) {
-        if (value === newVal) return
-        value = newVal
-        setState({})
-      }
-    }
-  })
+export function useRef<T = null>(initial = null as T): React.RefObject<T> {
+  if (inAFC()) return AFC.useRef(initial)
+  return React.useRef(initial)
 }
 
 /**
@@ -262,11 +224,11 @@ export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
  * Returns wrapped redux actions to use it without dispatcher
  */
 export function useActions<T extends Actions>(actions: T): T {
-  if (inAFC()) return AFC.useActions<T>(actions)
+  if (inAFC()) return AFC.useActions(actions)
   
   const dispatch = reduxUseDispatch()
   return useOnceCreated(() => {
-    const obj = <T> {}
+    const obj = {} as T
     for (const name in actions)
       obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
 
@@ -281,10 +243,9 @@ export function useActions<T extends Actions>(actions: T): T {
  * @param selectors - object of the type `{ key: selector }`
  */
 export function useRedux<T extends ReduxSelectors>(selectors: T) {
-  if (inAFC()) return AFC.useRedux<T>(selectors)
+  if (inAFC()) return AFC.useRedux(selectors)
   
-  type StateType = { [key in keyof T]: ReturnType<T[key]> }
-  const state = <StateType> {}
+  const state = {} as { [key in keyof T]: ReturnType<T[key]> }
   for (const name in selectors)
     state[name] = reduxUseSelector(selectors[name])
 

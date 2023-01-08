@@ -43,7 +43,6 @@ State
 - [useState](#usestate)
 - [useObjectState](#useobjectstate)
 - [useReactive](#usereactive)
-- [useRef](#useref)
 - [useContext](#usecontext)
 
 Redux
@@ -58,6 +57,7 @@ Other
 - [wrapDynamicHook](#wrapdynamichook)
 - [useOnceCreated](#useoncecreated)
 - [useMemo](#usememo)
+- [useRef](#useref)
 - [useForceUpdate](#useforceupdate)
 
 ## Installation
@@ -83,22 +83,36 @@ and also not to worry about an array of dependencies.
 
 The library is optimized as much as possible.
 
-[`afcMemo`](#afc-afcmemo)/[`fafcMemo`](#fafc-fafcmemo) returns the `memo`-component  
-[`afc`](#afc-afcmemo)/[`fafc`](#fafc-fafcmemo) returns a regular component
+[`afcMemo`](#afc-afcmemo)/[`fafcMemo`](#fafc-fafcmemo)/[`pafcMemo`](#pafc-pafcmemo) returns the `memo`-component  
+[`afc`](#afc-afcmemo)/[`fafc`](#fafc-fafcmemo)/[`pafc`](#pafc-pafcmemo) returns a regular component
 
-Each render uses one `useRef` hook, and the `prop` variable is also updated (excluding the first render).
+Each render uses one `useRef` hook, and the `props` is updated (excluding the first render).
 
 Calling the following methods adds logic that is used during **each render**:
 
-- [`useObjectState`](#useobjectstate), [`useReactive`](#usereactive), [`useRef`](#useref) adds one **useState** call
-- [`useRedux`](#useredux) adds **useSelector** calls depending on the passed object (one key - one hook call)
-- [`useOnDestroy`](#useondestroy), [`useOnMount`](#useonmount), [`useOnDraw`](#useondraw) adds one **useEffect** call with the passed callback
-- [`useOnRender`](#useonrender) adds a call the passed callback (performance directly depends on the actions in it)
-- [`useContext`](#usecontext) adds one **React.useContext** call
-- [`useDispatch`](#usedispatch), [`useActions`](#useactions) adds one **ReactRedux.useDispatch** call
-- [`useMemo`](#usememo) adds one **React.useMemo** call
+- [`useObjectState`](#useobjectstate) /
+  [`useReactive`](#usereactive) /
+  [`useState`](#usestate)
+  adds one **React.useState** call
+- [`useRedux`](#useredux)
+  adds **ReactRedux.useSelector** calls depending on the passed object (one key - one hook call)
+- [`useOnDestroy`](#useondestroy) /
+  [`useOnMount`](#useonmount) /
+  [`useOnDraw`](#useondraw) /
+  [`useEffect`](#useeffect) /
+  [`useLayoutEffect`](#uselayouteffect)
+  adds one **React.useEffect** call with the passed callback
+- [`useOnRender`](#useonrender) 
+  adds a call the passed callback (performance directly depends on the actions in it)
+- [`useContext`](#usecontext)
+  adds one **React.useContext** call
+- [`useDispatch`](#usedispatch) /
+  [`useActions`](#useactions)
+  adds one **ReactRedux.useDispatch** call
+- [`useMemo`](#usememo)
+  adds one **React.useMemo** call
 
-_Note:_ `useObjectState`, `useReactive`, `useRef`, `useDispatch`, `useActions`, `useOnDestroy`, `useOnMount`, `useOnDraw` adds one hook call regardless of the number of its calls
+_Note:_ All of them except `useRedux` / `useOnRender` adds one hook call regardless of the number of its calls
 
 Each of the methods can be called an **unlimited** number of times, but only within the constructor
 and in functions called from it
@@ -120,21 +134,6 @@ function Component(props) {
     name: selectName
   })
 
-  function render() {
-    const { name } = store
-
-    return (
-      <div>
-          <h1>Advanced function component</h1>
-          <input value={name} onChange={onChangeName} />
-          <input value={multiplier.val} onChange={onChangeMult} />
-          <input value={number.val} onChange={onChangeNumber} />
-          <p>Calculated: {calcValue()}</p>
-          <p>Hi, {name}!</p>
-      </div>
-    )
-  }
-
   const { changeName } = useActions(actions)
 
   function onChangeMult(event) {
@@ -153,7 +152,14 @@ function Component(props) {
     return multiplier.val * number.val
   }
 
-  return render
+  return () => <>
+    <h1>Advanced function component</h1>
+    <input value={store.name} onChange={onChangeName} />
+    <input value={multiplier.val} onChange={onChangeMult} />
+    <input value={number.val} onChange={onChangeNumber} />
+    <p>Calculated: {calcValue()}</p>
+    <p>Hi, {name}!</p>
+  </>
 }
 
 export default afcMemo(Component)
@@ -167,17 +173,15 @@ import { afc } from 'react-afc'
 function Component(props) {
   // The body of the "constructor".
   // Is called once (before the first render).
-  // Hooks only in 'onRender'.
+  // Common hooks must be wrapped or in 'useOnRender'.
 
-  function render() {
-    // render-function, as in a regular component.
+  return () => {
+    // Render function, as in a regular component.
     // Every render is called.
     return (
       <div>content</div>
     )
   }
-
-  return render
 }
 
 export default afc(Component)
@@ -185,10 +189,13 @@ export default afc(Component)
 
 ## State management
 
-To work with the state, use [`useReactive`](#usereactive)/[`useObjectState`](#useobjectstate)/[`useRef`](#useref)/[`useState`](#usestate)
+To work with the state, use
+[`useReactive`](#usereactive) /
+[`useObjectState`](#useobjectstate) /
+[`useState`](#usestate)
 
-```tsx
-import { afc, useObjectState, useReactive, useRef, useState } from 'react-afc'
+```jsx
+import { afc, useObjectState, useReactive, useState } from 'react-afc'
 
 function Component(props) {
   // useObjectState
@@ -213,44 +220,31 @@ function Component(props) {
     reactive.surname = 'New surname'
   }
 
-  // useRef
-  const nameRef = useRef('Name', true)
-  const surnameRef = useRef('Surname', true)
-
-  function changeState3() {
-    nameRef.current = 'New name'
-    surnameRef.current = 'New surname'
-  }
-
   // useState
-  const [name, setName] = useState('Name')
-  const [surname, setSurname] = useState('Surname')
+  const [name, setName2] = useState('Name')
+  const [surname, setSurname2] = useState('Surname')
 
   function changeState4() {
-    setName('New name')
-    setSurname('New surname')
+    setName2('New name')
+    setSurname2('New surname')
   }
 
-  function render() {
-    // any
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default afc(Component)
 ```
 
-To work with **Redux** use [`useRedux`](#useredux) and [`useDispatch`](#usedispatch)/[`useActions`](#useactions)
+To work with **Redux** use [`useRedux`](#useredux) and [`useDispatch`](#usedispatch) / [`useActions`](#useactions)
 
-```tsx
+```jsx
 import { afc, useRedux, useDispatch, useActions } from 'react-afc'
 import { actions } from './store'
 import { changeCount, selectCount } from './countSlice'
 
 function Component(props) {
   const store = useRedux({
-    name: store => store.name.current,
+    name: s => s.name.current,
     count: selectCount
   })
 
@@ -269,16 +263,12 @@ function Component(props) {
     delCount()
   }
 
-  function render() {
-    return <>
-      <input onChange={onChange}/>
-      <button onClick={onDelCount}>
-        Delete counter
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <input onChange={onChange}/>
+    <button onClick={onDelCount}>
+      Delete counter
+    </button>
+  </>
 }
 
 export default afc(Component)
@@ -301,13 +291,9 @@ function Component(props) {
     return count.val * 5
   }
 
-  function render() {
-    return (
-      <p>Calculated: {calculate()}</p>
-    )
-  }
-
-  return render
+  return () => (
+    <p>Calculated: {calculate()}</p>
+  )
 }
 
 export default afc(Component)
@@ -326,25 +312,22 @@ function Component() {
     exampleVar = commonHook()
   })
 
-  function render() {
+  return () => {
     // OR
     // exampleVar = commonHook()
     return (
       <p>Variable: {exampleVar}</p>
     )
   }
-
-  return render
 }
 
 export default afc(Component)
 ```
 
-Or use [wrapStaticHook](#wrapstatichook)/[wrapDynamicHook](#wrapdynamichook) from _`react-afc/compatible`_
+Or use [wrapStaticHook](#wrapstatichook) / [wrapDynamicHook](#wrapdynamichook)
 
 ```jsx
-import { afc, useOnRender, useForceUpdate } from 'react-afc'
-import { wrapStaticHook, wrapDynamicHook } from 'react-afc/compatible'
+import { afc, useOnRender, useForceUpdate, wrapStaticHook, wrapDynamicHook } from 'react-afc'
 
 function commonHook(number) {
   // any React common hooks
@@ -359,21 +342,20 @@ function Component() {
   let number = 5
 
   const staticResult = staticHook(number)
-  const dynamicHook = dynamicHook(() => [number])
-
+  const dynamicResult = dynamicHook(() => [number])
   const forceUpdate = useForceUpdate()
-  function render() {
+
+  return () => {
     number++
+
     return <>
       <p>Static result: {staticResult}</p>
-      <p>Dynamic result: {dynamicResult}</p>
+      <p>Dynamic result: {dynamicResult.val}</p>
       <button onClick={forceUpdate}>
         Force update
       </button>
     </>
   }
-
-  return render
 }
 
 export default afc(Component)
@@ -391,13 +373,9 @@ function Component(props) {
   })
   console.log('After onRender')
 
-  function render() {
-    return (
-      <p>onRender</p>
-    )
-  }
-
-  return render
+  return () => (
+    <p>onRender</p>
+  )
 }
 
 export default afc(Component)
@@ -421,7 +399,7 @@ onRender
 
 To use the same code in regular and _afc_ components, use the methods from `react-afc/compatible`.
 
-They have slightly less performance (+1 boolean check in each call).
+They have slightly less performance.
 
 When called in an _afc_ component, they work like normal methods for 'constructor'. When called in a regular component,
 they use adapted versions that do not cause errors and do the same job as in 'constructor'.
@@ -430,8 +408,8 @@ _Note:_ Use compatible methods only in reused functions.
 In other cases, the fastest option will be the usual methods from `react-afc`.
 
 ```jsx
-import { afc } from 'react-afc'
-import { useOnMount, useOnDestroy, wrapDynamicHook } from 'react-afc/compatible'
+import { afc, wrapDynamicHook } from 'react-afc'
+import { useOnMount, useOnDestroy } from 'react-afc/compatible'
 import { externalCommonHook } from './hooks'
 
 const afcHook = wrapDynamicHook(externalCommonHook)
@@ -451,13 +429,9 @@ const AFCComponent = afc(props => {
   })
   afcHook(5)
 
-  function render() {
-    return (
-      <p>afc component</p>
-    )
-  }
-
-  return render
+  return () => (
+    <p>afc component</p>
+  )
 })
 
 function CommonComponent(props) {
@@ -506,7 +480,7 @@ function Component(props) {
   })
 
   const store = useRedux({
-    count: store => store.count.value
+    count: s => s.count.value
   })
 
   const { name, age } = state // Error, freeze !!!
@@ -519,15 +493,11 @@ function Component(props) {
     const { surname } = props
   }
 
-  function render() {
-    return (
-      <button onClick={onClick}>
-        Click me
-      </button>
-    )
-  }
-
-  return render
+  return () => (
+    <button onClick={onClick}>
+      Click me
+    </button>
+  )
 }
 
 export default afc(Component)
@@ -538,9 +508,9 @@ It is forbidden to use regular hooks in the constructor without the [`useOnRende
 Since the "constructor" is called once, the call of the usual hooks in it will not be repeated in the render,
 which will cause the hooks to break and the application to crash.
 
-The contents of `onRender` are called every render, which ensures that the hooks work correctly.
+The contents of `useOnRender` are called every render, which ensures that the hooks work correctly.
 
-_Note:_ Use `onRender` only when there is no other way.
+_Note:_ Use `useOnRender` only when there is no other way.
 
 ```jsx
 import { useEffect as reactUseEffect } from 'react'
@@ -553,15 +523,13 @@ function Component(props) {
     reactUseEffect(/*...*/) // Right
   })
 
-  function render() {
+  return () => {
     reactUseEffect(/*...*/) // Right
 
     return (
       <p>common hooks</p>
     )
   }
-
-  return render
 }
 
 export default afc(Component)
@@ -589,13 +557,9 @@ import { afc } from 'react-afc'
 function Component(props) {
   // constructor logic
 
-  function render() {
-    return (
-      <div>afc/afcMemo</div>
-    )
-  }
-
-  return render
+  return () => (
+    <div>example text</div>
+  )
 }
 
 export default afc(Component)
@@ -606,7 +570,7 @@ export default afc(Component)
 ```ts
 export function fafc<P>(constructor: FAFC<P>): React.FC<P>
 export function fafcMemo<P>(constructor: FAFC<P>): ReturnType<React.memo>
-type FastProps<P> = { curr: P }
+type FastProps<P> = { val: P }
 ```
 
 Accepts a _constructor function_, which should return the usual _component function_.
@@ -622,15 +586,9 @@ function Component(props) {
   // constructor logic
 
   // IMPORTANT:
-  // const { name } = props.curr
+  // const { name } = props.val
 
-  function render() {
-    return (
-      <div>afc/afcMemo</div>
-    )
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default fafc(Component)
@@ -655,13 +613,7 @@ import { pafc } from 'react-afc'
 function Component() {
   // constructor logic
 
-  function render() {
-    return (
-      <div>afc/afcMemo</div>
-    )
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default pafc(Component)
@@ -681,20 +633,13 @@ _The same as `React.useEffect(() => callback, [])`_
 
 ```jsx
 import { afc, useOnDestroy } from 'react-afc'
-// import { useOnDestroy } from 'react-afc/compatible'
 
 function Component(props) {
   useOnDestroy(() => {
     document.removeEventListener(/*...*/)
   })
 
-  function render() {
-    return (
-      <p>onDestroy</p>
-    )
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default afc(Component)
@@ -714,20 +659,13 @@ _The same as `React.useEffect(callback, [])`_
 
 ```jsx
 import { afc, useOnMount } from 'react-afc'
-// import { useOnMount } from 'react-afc/compatible'
 
 function Component(props) {
   useOnMount(() => {
     document.addEventListener(/*...*/)
   })
 
-  function render() {
-    return (
-      <p>onMount</p>
-    )
-  }
-
-  return render
+  return () => (/*...*/)
 }
 
 export default afc(Component)
@@ -747,20 +685,13 @@ _The same as `React.useLayoutEffect(() => callback, [])`_
 
 ```jsx
 import { afc, useOnDraw } from 'react-afc'
-// import { useOnDraw } from 'react-afc/compatible'
 
 function Component(props) {
   useOnDraw(() => {
     document.addEventListener(/*...*/)
   })
 
-  function render() {
-    return (
-      <p>onDraw</p>
-    )
-  }
-
-  return render
+  return () => (/*...*/)
 }
 
 export default afc(Component)
@@ -776,7 +707,7 @@ Creates a memoized value getter
 
 ```jsx
 import { afc, useMemo, useReactive } from 'react-afc'
-// import { useMemo } from 'react-afc/compatible'
+import OtherComponent from './OtherComponent'
 
 function Component(props) {
   const state = useReactive({
@@ -789,13 +720,9 @@ function Component(props) {
     () => [state.count, state.mult]
   )
 
-  function render() {
-    return (
-      <Component result={getResult()}/>
-    )
-  }
-
-  return render
+  return () => (
+    <OtherComponent result={getResult()}/>
+  )
 }
 
 export default afc(Component)
@@ -815,7 +742,6 @@ _Has a superficial comparison of objects_.
 
 ```jsx
 import { afc, useObjectState } from 'react-afc'
-// import { useObjectState } from 'react-afc/compatible'
 
 function Component(props) {
   const { state, setName, setAge } = useObjectState({
@@ -824,22 +750,16 @@ function Component(props) {
   })
 
   function changeAge() {
-    setAge(20) // State: { name: 'Boris', age: 20 }
+    setAge(20)
   }
 
-  function render() {
-    const { name, age } = state
-
-    return <>
-      <p>Name: {name}</p>
-      <p>Age: {age}</p>
-      <button onClick={changeAge}>
-        Change age
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <p>Name: {state.name}</p>
+    <p>Age: {state.age}</p>
+    <button onClick={changeAge}>
+      Change age
+    </button>
+  </>
 }
 
 export default afc(Component)
@@ -858,7 +778,6 @@ When it is changed, the component is updated.
 
 ```jsx
 import { afc, useReactive } from 'react-afc'
-// import { useReactive } from 'react-afc/compatible'
 
 function Component(props) {
   const state = useReactive({
@@ -873,19 +792,13 @@ function Component(props) {
     state.count++
   }
 
-  function render() {
-    const { count } = state
-
-    return <>
-      <p>Count: {count}</p>
-      <input value={count} onChange={onCountInput}/>
-      <button onClick={onButtonClick}>
-        count++
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <p>Count: {state.count}</p>
+    <input value={state.count} onChange={onCountInput}/>
+    <button onClick={onButtonClick}>
+      count++
+    </button>
+  </>
 }
 
 export default afc(Component)
@@ -903,7 +816,6 @@ When value is changed, the component is updated.
 
 ```jsx
 import { afc, useState } from 'react-afc'
-// import { useState } from 'react-afc/compatible'
 
 function Component(props) {
   const [count, setCount] = useState(0)
@@ -916,19 +828,13 @@ function Component(props) {
     setCount(count.val + 1)
   }
 
-  function render() {
-    const { count } = state
-
-    return <>
-      <p>Count: {count}</p>
-      <input value={count} onChange={onCountInput}/>
-      <button onClick={onButtonClick}>
-        count++
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <p>Count: {count.val}</p>
+    <input value={count.val} onChange={onCountInput}/>
+    <button onClick={onButtonClick}>
+      count++
+    </button>
+  </>
 }
 
 export default afc(Component)
@@ -937,38 +843,33 @@ export default afc(Component)
 ### useRef
 
 ```ts
-export function useRef<T>(initial: T, isReactive = false): { current: T }
+export function useRef<T>(initial: T): { current: T }
 ```
 
-Accepts the initial state of the reactive reference.
-
-Returns a reactive reference.  
-When the value of the link changes, the component will be updated (`isReactive` is `true`).
+Accepts the initial reference value.
 
 ```jsx
-import { afc, useRef } from 'react-afc'
-// import { useRef } from 'react-afc/compatible'
+import { afc, useForceUpdate, useRef } from 'react-afc'
 
 function Component(props) {
-  const count = useRef(0, true)
-  const text = useRef(null, true)
+  const count = useRef(0)
+  const text = useRef(null)
 
-  function onClick() {
+  const forceUpdate = useForceUpdate()
+
+  function changeRefs() {
     count.current++
     text.current = 'example'
+    forceUpdate()
   }
 
-  function render() {
-    return <>
-      <p>Count: {count.current}</p>
-      <p>Text: {text.current}</p>
-      <button onClick={onClick}>
-        Change state
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <p>Count: {count.current}</p>
+    <p>Text: {text.current}</p>
+    <button onClick={changeRefs}>
+      Change refs
+    </button>
+  </>
 }
 
 export default afc(Component)
@@ -987,7 +888,6 @@ Calls it immediately and before each render.
 ```jsx
 import { useEffect as reactUseEffect } from 'react'
 import { afc, useOnRender } from 'react-afc'
-// import { useOnRender } from 'react-afc/compatible'
 
 import { anyCommonHook } from './hooks'
 
@@ -997,11 +897,7 @@ function Component(props) {
     anyCommonHook()
   })
 
-  function render() {
-    return <p>onRender</p>
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default afc(Component)
@@ -1017,7 +913,6 @@ Analog `React.useEffect(callback, deps())`
 
 ```jsx
 import { afc, useEffect } from 'react-afc'
-// import { useEffect } from 'react-afc/compatible'
 
 function Component(props) {
   let dependency = 0
@@ -1026,11 +921,7 @@ function Component(props) {
     // any actions
   }, () => [dependency])
 
-  function render() {
-    return <p>onRender</p>
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default afc(Component)
@@ -1046,7 +937,6 @@ Analog `React.useLayoutEffect(callback, deps())`
 
 ```jsx
 import { afc, useLayoutEffect } from 'react-afc'
-// import { useLayoutEffect } from 'react-afc/compatible'
 
 function Component(props) {
   let dependency = 0
@@ -1055,11 +945,7 @@ function Component(props) {
     // any actions
   }, () => [dependency])
 
-  function render() {
-    return <p>onRender</p>
-  }
-
-  return render
+  return () => {/*...*/}
 }
 
 export default afc(Component)
@@ -1077,8 +963,6 @@ Subscribes to context changes and returns `{ val: <context_value> }`.
 
 ```jsx
 import { afc, useContext } from 'react-afc'
-// import { useContext } from 'react-afc/compatible'
-
 import { NameContext } from './NameContext'
 
 function Component(props) {
@@ -1089,13 +973,9 @@ function Component(props) {
     return `Hi, ${name}!`
   }
 
-  function render() {
-    return (
-      <p>{greet()}</p>
-    )
-  }
-
-  return render
+  return () => (
+    <p>{greet()}</p>
+  )
 }
 
 export default afc(Component)
@@ -1115,28 +995,18 @@ Subscribes to the change of the store and returns an object of the form `{ key: 
 
 ```jsx
 import { afc, useRedux } from 'react-afc'
-// import { useRedux } from 'react-afc/compatible'
-
 import { selectName, selectAge } from './personSlice'
 
 function Component(props) {
   const store = useRedux({
     name: selectName,
     age: selectAge,
-    count: state => state.count.value
+    count: s => s.count.value
   })
 
-  function func() {
-    const { name, age, count } = store
-  }
-
-  function render() {
-    return (
-      <p>Name: {store.name}; Age: {store.age}</p>
-    )
-  }
-
-  return render
+  return () => (
+    <p>Name: {store.name}; Age: {store.age}; Count {store.count}</p>
+  )
 }
 
 export default afc(Component)
@@ -1154,30 +1024,24 @@ Returns **redux dispatch**.
 
 ```jsx
 import { afc, useDispatch } from 'react-afc'
-// import { useDispatch } from 'react-afc/compatible'
-
 import { changeName, changeAge } from './personSlice'
 
 function Component(props) {
   const dispatch = useDispatch()
 
-  function onChangeName(value) {
-    dispatch(changeName(value))
+  function onChangeName() {
+    dispatch(changeName('New name'))
   }
 
-  function onChangeAge(value) {
-    dispatch(changeAge(value))
+  function onChangeAge() {
+    dispatch(changeAge(10))
   }
 
-  function render() {
-    return <>
-      <button onClick={() => onChangeName('new name')}>
-        Change name
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <button onClick={() => onChangeName('new name')}>
+      Change name
+    </button>
+  </>
 }
 
 export default afc(Component)
@@ -1195,8 +1059,6 @@ Returns wrapped actions. They can be used without dispatcher.
 
 ```jsx
 import { afc, useActions } from 'react-afc'
-// import { useActions } from 'react-afc/compatible'
-
 import { actions } from './store'
 
 function Component(props) {
@@ -1206,15 +1068,11 @@ function Component(props) {
     changeCount(5)
   }
 
-  function render() {
-    return (
-      <button onClick={setCountToFive}>
-        Change count
-      </button>
-    )
-  }
-
-  return render
+  return () => (
+    <button onClick={setCountToFive}>
+      Change count
+    </button>
+  )
 }
 
 export default afc(Component)
@@ -1242,14 +1100,18 @@ function withHardCalc() {
 
 const AFCComponent = afc(props => {
   withHardCalc()
-  return () => <p>content</p>
+  return () => (
+    <p>content</p>
+  )
 })
 
 function CommonComponent(props) {
   // It will work the same way as in the afc component.
   // Will not cause errors.
   withHardCalc()
-  return <p>content</p>
+  return (
+    <p>content</p>
+  )
 }
 ```
 
@@ -1264,8 +1126,7 @@ Wraps the original hook. Allows you to use it in `afc` components.
 The return value does not change (static hook).
 
 ```jsx
-import { afc } from 'react-afc'
-import { wrapStaticHook } from 'react-afc/compatible'
+import { afc, wrapStaticHook } from 'react-afc'
 import { externalHook } from './hooks'
 
 const staticHook = wrapStaticHook(externalHook)
@@ -1273,11 +1134,9 @@ const staticHook = wrapStaticHook(externalHook)
 function Component(props) {
   const value = staticHook('Any static property')
 
-  function render() {
-    return <p>Static value: {value}</p>
-  }
-
-  return render
+  return () => (
+    <p>Static value: {value}</p>
+  )
 }
 
 export default afc(Component)
@@ -1294,21 +1153,18 @@ Wraps the original hook. Allows you to use it in `afc` components.
 The return value is calculated every render (dynamic hook).
 
 ```jsx
-import { afc } from 'react-afc'
-import { wrapDynamicHook } from 'react-afc/compatible'
+import { afc, wrapDynamicHook } from 'react-afc'
 import { externalHook } from './hooks'
 
 const dynamicHook = wrapDynamicHook(externalHook)
 
 function Component(props) {
   let dynamicArgument = 5
-  const value = dynamicHook(() => [dynamicArgument])
+  const dynResult = dynamicHook(() => [dynamicArgument])
 
-  function render() {
-    return <p>Dynamic value: {value}</p>
-  }
-
-  return render
+  return () => (
+    <p>Dynamic value: {dynResult.val}</p>
+  )
 }
 
 export default afc(Component)
@@ -1328,16 +1184,12 @@ import { afc, useForceUpdate } from 'react-afc'
 function Component(props) {
   const forceUpdate = useForceUpdate()
 
-  function render() {
-    return <>
-      <p>Random number: {Math.random()}</p>
-      <button onClick={forceUpdate}>
-        Force update
-      </button>
-    </>
-  }
-
-  return render
+  return () => <>
+    <p>Random number: {Math.random()}</p>
+    <button onClick={forceUpdate}>
+      Force update
+    </button>
+  </>
 }
 
 export default afc(Component)

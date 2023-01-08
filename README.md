@@ -59,8 +59,6 @@ Other
 - [useOnceCreated](#useoncecreated)
 - [useMemo](#usememo)
 - [useForceUpdate](#useforceupdate)
-- [Injectable](#injectable)
-- [inject](#inject)
 
 ## Installation
 
@@ -1220,47 +1218,6 @@ function Component(props) {
 }
 
 export default afc(Component)
-```
-
-### Injectable
-
-```ts
-export function Injectable<T extends Constructable>(Constructable: T): Injectable
-```
-
-Marks the class as _injectable_, which allows you to use it in the `inject`.
-
-```ts
-import { Injectable } from 'react-afc'
-
-@Injectable
-export class LocalMessagesService {
-  private key = 'MESSAGE'
-  
-  getMessage(): string {
-    return localStorage.getItem(this.key)
-  }
-}
-```
-
-### inject
-
-```ts
-export function inject<T extends Injectable>(Type: T): InstanceType<T>
-```
-
-Simulates the operation of Dependency Injection.
-Returns the only instance of the passed class.
-
-```js
-import { inject } from 'react-afc'
-import { LocalMessagesService } from './LocalMessagesService'
-
-const localMessages = inject(LocalMessagesService)
-
-function Component() {
-  const message = localMessages.getMessage()
-}
 ```
 
 ### useOnceCreated

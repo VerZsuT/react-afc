@@ -19,14 +19,6 @@ export type PAFC = () => RenderFunc
 export type FastProps<P> = { curr: P }
 export type AFCOptions = { lazyPropsUpdate?: boolean }
 
-export interface Constructable<T> {
-  new(...args: any[]): T
-}
-
-export interface IInjectable extends Constructable<any> {
-  __injectInstance__?: any
-}
-
 export interface Data<P> {
   beforeRender(): void
   forceUpdate?(): void

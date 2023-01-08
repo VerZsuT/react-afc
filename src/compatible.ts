@@ -21,7 +21,7 @@ export function wrapStaticHook<T extends HookToWrap>(hook: T): T {
 export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
   return ((args: () => Parameters<T>) => {
     const value = {} as DynamicHookResult<T>
-    useOnRender(() => value.current = hook(...args()))
+    useOnRender(() => value.curr = hook(...args()))
     return value
   })
 }

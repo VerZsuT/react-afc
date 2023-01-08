@@ -78,7 +78,7 @@ export function fafc<P extends object>(constructor: FAFC<P>) {
     let data = ref.current
 
     if (data) {
-      data.props.curr = props
+      data.props.val = props
       data.beforeRender()
       return data.render()
     }
@@ -87,7 +87,7 @@ export function fafc<P extends object>(constructor: FAFC<P>) {
       beforeRender() {},
       render() { return null },
       callbacks: {},
-      props: { curr: props }
+      props: { val: props }
     }
     
     withData(data, () => {
@@ -180,10 +180,10 @@ export function useContext<T>(context: React.Context<T>) {
 /**
  * Returns the getter of the memoized value
  */
-export function useMemo<T>(factory: () => T, depsGetter: () => any[]): () => T {
-  let value: T
-  addToRenderAndCall(() => value = React.useMemo(factory, depsGetter()))
-  return () => value
+export function useMemo<T>(factory: () => T, depsGetter: () => any[]) {
+  const value = {} as { val: T }
+  addToRenderAndCall(() => value.val = React.useMemo(factory, depsGetter()))
+  return value
 }
 
 /**
@@ -384,7 +384,7 @@ export function wrapStaticHook<T extends HookToWrap>(hook: T) {
 export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
   return (args: () => Parameters<T>) => {
     const value = {} as DynamicHookResult<T>
-    useOnRender(() => value.curr = hook(...args()))
+    useOnRender(() => value.val = hook(...args()))
     return value
   }
 }

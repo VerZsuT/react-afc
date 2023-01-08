@@ -66,9 +66,7 @@ export function useContext<T>(context: React.Context<T>) {
  */
 export function useMemo<T>(factory: () => T, depsGetter: () => any[]) {
   if (inAFC()) return AFC.useMemo<T>(factory, depsGetter)
-
-  const value = React.useMemo(factory, depsGetter())
-  return () => value
+  return { val: React.useMemo(factory, depsGetter()) }
 }
 
 /**
@@ -81,7 +79,7 @@ export function useOnceCreated<T>(factory: () => T) {
 
   const ref = React.useRef({
     isCreated: false,
-    value: <T> null
+    value: null as T
   })
 
   if (!ref.current.isCreated) {

@@ -5,7 +5,7 @@ import type { AnyAction, Dispatch } from 'redux'
 type Constructor<P> = (props: P) => RenderFunc
 
 export type HookToWrap = (...args: any[]) => any
-export type DynamicHookResult<T extends HookToWrap> = { curr: ReturnType<T> }
+export type DynamicHookResult<T extends HookToWrap> = { val: ReturnType<T> }
 
 export type Actions = Record<string, (arg: any) => any>
 export type ReduxSelectors = Record<string, (state: any) => any>
@@ -16,7 +16,7 @@ export type AFC<P = {}> = Constructor<P>
 export type FAFC<P = {}> = Constructor<FastProps<P>>
 export type PAFC = () => RenderFunc
 
-export type FastProps<P> = { curr: P }
+export type FastProps<P> = { val: P }
 export type AFCOptions = { lazyPropsUpdate?: boolean }
 
 export interface Data<P> {

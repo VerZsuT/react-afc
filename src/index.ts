@@ -145,6 +145,9 @@ export function useObjectState<T extends State>(initial: T): ObjectState<T> {
   return { state, ...setters }
 }
 
+/**
+ * _Analog of `React.useState(initial)`_
+ */
 export function useState<T = undefined>(initial: T): CommonState<T> {
   const stateValue: CommonState<T>[0] = { val: initial }
   const forceUpdate = getForceUpdate()
@@ -183,6 +186,9 @@ export function useMemo<T>(factory: () => T, depsGetter: () => any[]): () => T {
   return () => value
 }
 
+/**
+ * @returns function that updates the component when called
+ */
 export function useForceUpdate() {
   return getForceUpdate()
 }

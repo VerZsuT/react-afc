@@ -94,6 +94,11 @@ export function useOnceCreated<T>(factory: () => T) {
   return ref.current.value
 }
 
+/**
+ * _Compatible with non-afc components_
+ * 
+ * Returns a component with constructor functionality
+ */
 export function useForceUpdate() {
   return inAFC()
     ? AFC.useForceUpdate()

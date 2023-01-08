@@ -4,7 +4,7 @@ import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from
 import type { AnyAction, Dispatch } from 'redux'
 
 import { addToRenderAndCall, fastUpdateProps, getData, getForceUpdate, lazyUpdateProps, withData } from './lib'
-import type { Actions, AFC, AFCOptions, CommonState, Data, FAFC, FastProps, ObjectState, ObjectStateSetters, PAFC, ReduxSelectors, State } from './types'
+import type { Actions, AFC, AFCOptions, CommonState, Data, DynamicHookResult, FAFC, FastProps, HookToWrap, ObjectState, ObjectStateSetters, PAFC, ReduxSelectors, State } from './types'
 
 /**
  * Returns a component with constructor functionality
@@ -355,4 +355,30 @@ export function useRedux<T extends ReduxSelectors>(config: T) {
   })
 
   return state
+}
+
+/**
+ * Allows to use a regular hook in the afc component.
+ * 
+ * @returns static value
+ */
+export function wrapStaticHook<T extends HookToWrap>(hook: T) {
+  return ((...args: any[]) => {
+    let value: any
+    useOnRender(() => value = hook(...args))
+    return value
+  }) as T
+}
+
+/**
+ * Allows to use a regular hook in the afc component.
+ * 
+ * @returns dynamic value
+ */
+export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
+  return (args: () => Parameters<T>) => {
+    const value = {} as DynamicHookResult<T>
+    useOnRender(() => value.curr = hook(...args()))
+    return value
+  }
 }

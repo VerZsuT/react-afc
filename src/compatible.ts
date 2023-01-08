@@ -4,25 +4,9 @@ import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from
 import type { AnyAction, Dispatch } from 'redux'
 
 import { isConstruct as inAFC } from './lib'
-import type { Actions, DynamicHookResult, HookToWrap, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
+import type { Actions, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
 
 import * as AFC from './index'
-
-export function wrapStaticHook<T extends HookToWrap>(hook: T) {
-  return ((...args: any[]) => {
-    let value: any
-    useOnRender(() => value = hook(...args))
-    return value
-  }) as T
-}
-
-export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
-  return (args: () => Parameters<T>) => {
-    const value = {} as DynamicHookResult<T>
-    useOnRender(() => value.curr = hook(...args()))
-    return value
-  }
-}
 
 /**
  * _Compatible with non-afc components_

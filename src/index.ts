@@ -9,10 +9,10 @@ import type { Actions, AFC, AFCOptions, CommonState, Constructable, Data, FAFC, 
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions): React.FC<P> {
+export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
   const updateProps = options?.lazyPropsUpdate ? lazyUpdateProps : fastUpdateProps
 
-  return <React.FC<P>> ((props: P): React.ReactNode => {
+  return ((props: P) => {
     const ref = React.useRef<Data<P>>()
     let data = ref.current
 
@@ -35,7 +35,7 @@ export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions)
       data!.render = constructor(data!.props)
     })
     return data.render()
-  })
+  }) as React.FC<P>
 }
 
 /**
@@ -43,8 +43,8 @@ export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions)
  * 
  * _Does not accept or transmit props_
  */
-export function pafc(constructor: PAFC): React.FC {
-  return <React.FC> ((): React.ReactNode => {
+export function pafc(constructor: PAFC) {
+  return (() => {
     const ref = React.useRef<Data<null>>()
     let data = ref.current
 
@@ -64,7 +64,7 @@ export function pafc(constructor: PAFC): React.FC {
       data!.render = constructor()
     })
     return data.render()
-  })
+  }) as React.FC
 }
 
 /**
@@ -72,8 +72,8 @@ export function pafc(constructor: PAFC): React.FC {
  * 
  * _Updated faster then `afc`_
  */
-export function fafc<P extends object>(constructor: FAFC<P>): React.FC<P> {
-  return <React.FC<P>> ((props: P): React.ReactNode => {
+export function fafc<P extends object>(constructor: FAFC<P>) {
+  return ((props: P) => {
     const ref = React.useRef<Data<FastProps<P>>>()
     let data = ref.current
 
@@ -94,14 +94,14 @@ export function fafc<P extends object>(constructor: FAFC<P>): React.FC<P> {
       data!.render = constructor(data!.props)
     })
     return data.render()
-  })
+  }) as React.FC<P>
 }
 
 /**
  * Returns a memo component with constructor functionality
  */
 export function afcMemo<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
-  return React.memo<P>(afc<P>(constructor, options))
+  return React.memo(afc(constructor, options))
 }
 
 /**
@@ -110,7 +110,7 @@ export function afcMemo<P extends object>(constructor: AFC<P>, options?: AFCOpti
  * _Updates faster then `afc`_
  */
 export function fafcMemo<P extends object>(constructor: FAFC<P>) {
-  return React.memo<P>(fafc<P>(constructor))
+  return React.memo(fafc(constructor))
 }
 
 /**
@@ -130,7 +130,7 @@ export function pafcMemo(constructor: PAFC) {
  */
 export function useObjectState<T extends State>(initial: T): ObjectState<T> {
   const forceUpdate = getForceUpdate()
-  const setters = <ObjectStateSetters<T>> {}
+  const setters = {} as ObjectStateSetters<T>
   const state = { ...initial }
 
   for (const name in initial) {
@@ -161,15 +161,15 @@ export function useState<T = undefined>(initial: T): CommonState<T> {
  * Returns redux-dispatch
  */
 export function useDispatch<T = Dispatch<AnyAction>>(): T {
-  return <T> (getData().dispatch ||= addToRenderAndCall(reduxUseDispatch))
+  return (getData().dispatch ||= addToRenderAndCall(reduxUseDispatch)) as T
 }
 
 /**
  * Subscribes to context changes
  * @returns `{ val: <context_value> }`
  */
-export function useContext<T>(context: React.Context<T>): { val: T } {
-  const value = <{ val: T }> {}
+export function useContext<T>(context: React.Context<T>) {
+  const value = {} as { val: T }
   addToRenderAndCall(() => value.val = React.useContext(context))
   return value
 }
@@ -210,7 +210,7 @@ export function useMemo<T>(factory: () => T, depsGetter: () => any[]): () => T {
   return () => value
 }
 
-export function useForceUpdate(): () => void {
+export function useForceUpdate() {
   return getForceUpdate()
 }
 
@@ -329,10 +329,10 @@ export function useOnRender(callback: () => void): void {
  * Returns reactive state.
  * Changes to the state will cause the component to be updated.
  */
-export function useReactive<T extends State>(state: T): T {
+export function useReactive<T extends State>(state: T) {
   const forceUpdate = getForceUpdate()
   const value = { ...state }
-  const obj = <T> {}
+  const obj = {} as T
 
   for (const key in value) {
     Object.defineProperty(obj, key, {
@@ -377,9 +377,9 @@ export function useRef<T = null>(initial: T, isReactive = false): React.Ref<T> {
 /**
  * Returns wrapped redux actions to use it without dispatcher
  */
-export function useActions<T extends Actions>(actions: T): T {
+export function useActions<T extends Actions>(actions: T) {
   const dispatch = useDispatch()
-  const obj = <T> {}
+  const obj = {} as T
 
   for (const name in actions)
     obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
@@ -392,8 +392,7 @@ export function useActions<T extends Actions>(actions: T): T {
  * @param config - object of the type `{ key: selector }`
  */
 export function useRedux<T extends ReduxSelectors>(config: T) {
-  type StateType = { [key in keyof T]: ReturnType<T[key]> }
-  const state = <StateType> {}
+  const state = {} as { [key in keyof T]: ReturnType<T[key]> }
 
   addToRenderAndCall(() => {
     for (const name in config)

@@ -8,7 +8,7 @@ const errorHandler = (_: any, name: string | symbol): boolean => {
     throw new Error('Attempt to outside call react-afc method')
   return false
 }
-const initialData: Data<{}> = new Proxy({}, {
+const initialData: Data<unknown> = new Proxy({}, {
   get: errorHandler,
   set: errorHandler
 })
@@ -25,17 +25,17 @@ export function withData(data: Data<any>, callback: () => void): void {
   currentData = prevData
 }
 
-export function addToRender<T extends () => any>(callback: T): T {
+export function addToRender<T extends () => any>(callback: T) {
   const prev = currentData.beforeRender
   currentData.beforeRender = () => { prev(); callback() }
   return callback
 }
 
-export function addToRenderAndCall<T = undefined>(callback: () => T): T {
+export function addToRenderAndCall<T = undefined>(callback: () => T) {
   return addToRender(callback)()
 }
 
-export function getForceUpdate(): () => void {
+export function getForceUpdate() {
   if (!currentData.forceUpdate) {
     const stateSetter = addToRenderAndCall(useState)[1]
     currentData.forceUpdate = () => stateSetter({})
@@ -43,7 +43,7 @@ export function getForceUpdate(): () => void {
   return currentData.forceUpdate
 }
 
-export function lazyUpdateProps<DestType>(source: any, dest: DestType): DestType {
+export function lazyUpdateProps<DestType>(source: any, dest: DestType) {
   for (const key in dest) {
     if (key in source) continue
     delete dest[key]
@@ -51,7 +51,7 @@ export function lazyUpdateProps<DestType>(source: any, dest: DestType): DestType
   return fastUpdateProps(source, dest)
 }
 
-export function fastUpdateProps<DestType>(source: any, dest: DestType): DestType {
+export function fastUpdateProps<DestType>(source: any, dest: DestType) {
   for (const key in source)
     dest[key] = source[key]
   return dest

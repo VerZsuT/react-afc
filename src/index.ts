@@ -6,8 +6,6 @@ import type { AnyAction, Dispatch } from 'redux'
 import { addToRenderAndCall, fastUpdateProps, getData, getForceUpdate, lazyUpdateProps, withData } from './lib'
 import type { Actions, AFC, AFCOptions, CommonState, Constructable, Data, FAFC, FastProps, IInjectable, ObjectState, ObjectStateSetters, PAFC, ReduxSelectors, State } from './types'
 
-export type { AFC, FAFC, PAFC } from './types'
-
 /**
  * Returns a component with constructor functionality
  */

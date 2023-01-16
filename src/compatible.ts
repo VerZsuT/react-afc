@@ -213,7 +213,7 @@ export function useReactive<T extends State>(state: T): T {
  *
  * Creates an object of the form `{ current: <ref_value> }`
  */
-export function useRef<T = null>(initial = null as T): React.RefObject<T> {
+export function useRef<T = null>(initial = null as T): React.MutableRefObject<T> {
   if (inAFC()) return AFC.useRef(initial)
   return React.useRef(initial)
 }

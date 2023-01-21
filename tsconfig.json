@@ -1,21 +1,27 @@
 {
-    "compilerOptions": {
-      "target": "ESNext",
-      "module": "ESNext",
-      "lib": ["ESNext", "DOM", "DOM.Iterable"],
-      "moduleResolution": "node",
-      "outDir": "lib",
-      "newLine": "LF",
-      "isolatedModules": true,
-      "allowSyntheticDefaultImports": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "strict": true,
-      "noImplicitAny": false,
-      "declaration": true
-    },
-    "include": [
-      "src/**/*.ts"
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
     ],
-    "exclude": ["node_modules"]
-  }
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "newLine": "LF",
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "declaration": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

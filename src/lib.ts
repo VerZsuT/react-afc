@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useDebugValue, useState } from 'react'
 
 import type { Data } from './types'
 
@@ -35,12 +35,28 @@ export function addToRenderAndCall<T = undefined>(callback: () => T) {
   return addToRender(callback)()
 }
 
+export function inspectState(data: Data<any>) {
+  useDebugValue(data.state)
+}
+
 export function getForceUpdate() {
   if (!currentData.forceUpdate) {
     const stateSetter = addToRenderAndCall(useState)[1]
     currentData.forceUpdate = () => stateSetter({})
   }
   return currentData.forceUpdate
+}
+
+export function addState<T = null>(initial = null as T): { val: T } {
+  const state = currentData.state
+  const currentIndex = state.lastIndex + 1
+  state.lastIndex = currentIndex
+  state[currentIndex] = initial
+
+  return {
+    get val() { return state[currentIndex] },
+    set val(v) { state[currentIndex] = v }
+  }
 }
 
 export function lazyUpdateProps<DestType>(source: any, dest: DestType) {
@@ -55,4 +71,12 @@ export function fastUpdateProps<DestType>(source: any, dest: DestType) {
   for (const key in source)
     dest[key] = source[key]
   return dest
+}
+
+export function changeName<
+  CompType extends Function,
+  ConstrType extends Function
+>(component: CompType, contructor: ConstrType): CompType {
+  component['displayName'] = contructor.name
+  return component
 }

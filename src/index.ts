@@ -3,7 +3,7 @@ import React from 'react'
 import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { addToRenderAndCall, fastUpdateProps, getData, getForceUpdate, lazyUpdateProps, withData } from './lib'
+import { addState, addToRenderAndCall, changeName, fastUpdateProps, getData, getForceUpdate, inspectState, lazyUpdateProps, withData } from './lib'
 import type { Actions, AFC, AFCOptions, CommonState, Data, DynamicHookResult, FAFC, FastProps, HookToWrap, ObjectState, ObjectStateSetters, PAFC, ReduxSelectors, State } from './types'
 
 /**
@@ -12,30 +12,36 @@ import type { Actions, AFC, AFCOptions, CommonState, Data, DynamicHookResult, FA
 export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
   const updateProps = options?.lazyPropsUpdate ? lazyUpdateProps : fastUpdateProps
 
-  return ((props: P) => {
+  return changeName((props: P) => {
     const ref = React.useRef<Data<P>>()
     let data = ref.current
 
     if (data) {
       if (data.prevProps !== props)
         data.prevProps = updateProps(props, data.props)
+      inspectState(data)
       data.beforeRender()
       return data.render()
     }
 
     ref.current = data = {
-      beforeRender() {},
+      beforeRender() { },
       callbacks: {},
+      state: { lastIndex: 0 },
       render() { return null },
       prevProps: props,
-      props: { ...props }
+      props: { ...props },
+      sharedStore: {
+        get [PROPS_STORE]() { return data?.props }
+      }
     }
-    
+
+    inspectState(data)
     withData(data, () => {
       data!.render = constructor(data!.props)
     })
     return data.render()
-  }) as React.FC<P>
+  }, constructor) as React.FC<P>
 }
 
 /**
@@ -44,27 +50,30 @@ export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions)
  * _Does not accept or transmit props_
  */
 export function pafc(constructor: PAFC) {
-  return (() => {
+  return changeName(() => {
     const ref = React.useRef<Data<null>>()
     let data = ref.current
 
     if (data) {
+      inspectState(data)
       data.beforeRender()
       return data.render()
     }
 
     ref.current = data = {
-      beforeRender() {},
+      beforeRender() { },
       callbacks: {},
+      state: { lastIndex: 0 },
       render() { return null },
       props: null
     }
-    
+
+    inspectState(data)
     withData(data, () => {
       data!.render = constructor()
     })
     return data.render()
-  }) as React.FC
+  }, constructor) as React.FC
 }
 
 /**
@@ -73,28 +82,34 @@ export function pafc(constructor: PAFC) {
  * _Updated faster then `afc`_
  */
 export function fafc<P extends object>(constructor: FAFC<P>) {
-  return ((props: P) => {
+  return changeName((props: P) => {
     const ref = React.useRef<Data<FastProps<P>>>()
     let data = ref.current
 
     if (data) {
       data.props.val = props
+      inspectState(data)
       data.beforeRender()
       return data.render()
     }
 
     ref.current = data = {
-      beforeRender() {},
+      beforeRender() { },
       render() { return null },
       callbacks: {},
-      props: { val: props }
+      state: { lastIndex: 0 },
+      props: { val: props },
+      sharedStore: {
+        get [FAST_PROPS_STORE]() { return data?.props }
+      }
     }
-    
+
+    inspectState(data)
     withData(data, () => {
       data!.render = constructor(data!.props)
     })
     return data.render()
-  }) as React.FC<P>
+  }, constructor) as React.FC<P>
 }
 
 /**
@@ -129,9 +144,9 @@ export function pafcMemo(constructor: PAFC) {
  * @returns - { state, set<Key> }
  */
 export function useObjectState<T extends State>(initial: T): ObjectState<T> {
-  const forceUpdate = getForceUpdate()
   const setters = {} as ObjectStateSetters<T>
-  const state = { ...initial }
+  const state = addState({ ...initial }).val
+  const forceUpdate = getForceUpdate()
 
   for (const name in initial) {
     const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
@@ -149,15 +164,15 @@ export function useObjectState<T extends State>(initial: T): ObjectState<T> {
  * _Analog of `React.useState(initial)`_
  */
 export function useState<T = undefined>(initial: T): CommonState<T> {
-  const stateValue: CommonState<T>[0] = { val: initial }
+  const state = addState(initial)
   const forceUpdate = getForceUpdate()
   const stateSetter = (value: T) => {
-    if (value === stateValue.val) return
-    stateValue.val = value
+    if (value === state.val) return
+    state.val = value
     forceUpdate()
   }
 
-  return [stateValue, stateSetter]
+  return [state, stateSetter]
 }
 
 /**
@@ -191,6 +206,26 @@ export function useMemo<T>(factory: () => T, depsGetter: () => any[]) {
  */
 export function useForceUpdate() {
   return getForceUpdate()
+}
+
+export const MAIN_STORE = '__MAIN__'
+export const PROPS_STORE = '__PROPS__'
+export const FAST_PROPS_STORE = '__FAST_PROPS__'
+
+export function useSharedStore<T extends object = {}>(): T
+export function useSharedStore<T extends object = {}>(name: string): T
+export function useSharedStore<T extends object = {}>(intial: T): T
+export function useSharedStore<T extends object = {}>(name: string, initial: T): T
+export function useSharedStore<T extends object = {}>(nameOrInitial?: string | T, initial?: T): T {
+  const sharedStore = (getData().sharedStore ||= {})
+  let store: T
+
+  if (typeof nameOrInitial === 'string')
+    store = (sharedStore[nameOrInitial] ||= initial || {})
+  else
+    store = (sharedStore[MAIN_STORE] ||= nameOrInitial || {})
+
+  return store
 }
 
 /**
@@ -308,17 +343,17 @@ export function useOnRender(callback: () => void): void {
  * Returns reactive state.
  * Changes to the state will cause the component to be updated.
  */
-export function useReactive<T extends State>(state: T) {
+export function useReactive<T extends State>(initial: T) {
   const forceUpdate = getForceUpdate()
-  const value = { ...state }
+  const state = addState({ ...initial }).val
   const obj = {} as T
 
-  for (const key in value) {
+  for (const key in state) {
     Object.defineProperty(obj, key, {
-      get: () => value[key],
+      get: () => state[key],
       set(newVal: any) {
-        if (value[key] === newVal) return
-        value[key] = newVal
+        if (state[key] === newVal) return
+        state[key] = newVal
         forceUpdate()
       },
       enumerable: true

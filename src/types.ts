@@ -23,12 +23,17 @@ export interface Data<P> {
   beforeRender(): void
   forceUpdate?(): void
   dispatch?: Dispatch<AnyAction>
+  sharedStore?: Record<string, any>
   callbacks: {
     afterMount?(): void
     afterUnmount?(): void
     afterDraw?(): void
     effect?: EffectCallback
     layoutEffect?: EffectCallback
+  }
+  state: {
+    [key: number]: any
+    lastIndex: number
   }
   render: RenderFunc
   props: P

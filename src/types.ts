@@ -2,7 +2,7 @@ import type { EffectCallback, ReactNode } from 'react'
 
 import type { AnyAction, Dispatch } from 'redux'
 
-type Constructor<P> = (props: P) => RenderFunc
+export type Constructor<P extends object = {}> = (props: P) => RenderFunc
 
 export type HookToWrap = (...args: any[]) => any
 export type DynamicHookResult<T extends HookToWrap> = { val: ReturnType<T> }
@@ -12,18 +12,12 @@ export type ReduxSelectors = Record<string, (state: any) => any>
 export type State = Record<string, any>
 
 export type RenderFunc = () => ReactNode
-export type AFC<P = {}> = Constructor<P>
-export type FAFC<P = {}> = Constructor<FastProps<P>>
-export type PAFC = () => RenderFunc
-
-export type FastProps<P> = { val: P }
-export type AFCOptions = { lazyPropsUpdate?: boolean }
+export type ConstructOptions = { lazyPropsUpdate?: boolean }
 
 export interface Data<P> {
   beforeRender(): void
   forceUpdate?(): void
   dispatch?: Dispatch<AnyAction>
-  sharedStore?: Record<string, any>
   callbacks: {
     afterMount?(): void
     afterUnmount?(): void

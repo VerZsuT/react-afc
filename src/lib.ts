@@ -8,7 +8,7 @@ const errorHandler = (_: any, name: string | symbol): boolean => {
     throw new Error('Attempt to outside call react-afc method')
   return false
 }
-const initialData: Data<unknown> = new Proxy({}, {
+const initialData: Data<any> = new Proxy({}, {
   get: errorHandler,
   set: errorHandler
 })
@@ -50,8 +50,7 @@ export function getForceUpdate() {
 export function addState<T = null>(initial = null as T): { val: T } {
   const state = currentData.state
   const currentIndex = state.lastIndex + 1
-  state.lastIndex = currentIndex
-  state[currentIndex] = initial
+  state[++state.lastIndex] = initial
 
   return {
     get val() { return state[currentIndex] },
@@ -59,7 +58,7 @@ export function addState<T = null>(initial = null as T): { val: T } {
   }
 }
 
-export function lazyUpdateProps<DestType>(source: any, dest: DestType) {
+export function lazyUpdateProps<DestType extends object>(source: any, dest: DestType) {
   for (const key in dest) {
     if (key in source) continue
     delete dest[key]
@@ -67,10 +66,8 @@ export function lazyUpdateProps<DestType>(source: any, dest: DestType) {
   return fastUpdateProps(source, dest)
 }
 
-export function fastUpdateProps<DestType>(source: any, dest: DestType) {
-  for (const key in source)
-    dest[key] = source[key]
-  return dest
+export function fastUpdateProps<DestType extends object>(source: any, dest: DestType) {
+  return Object.assign(dest, source)
 }
 
 export function changeName<

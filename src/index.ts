@@ -4,137 +4,46 @@ import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from
 import type { AnyAction, Dispatch } from 'redux'
 
 import { addState, addToRenderAndCall, changeName, fastUpdateProps, getData, getForceUpdate, inspectState, lazyUpdateProps, withData } from './lib'
-import type { Actions, AFC, AFCOptions, CommonState, Data, DynamicHookResult, FAFC, FastProps, HookToWrap, ObjectState, ObjectStateSetters, PAFC, ReduxSelectors, State } from './types'
+import type { Actions, CommonState, ConstructOptions, Constructor, Data, DynamicHookResult, HookToWrap, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
 
 /**
  * Returns a component with constructor functionality
  */
-export function afc<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
+export function afc<P extends object>(constructor: Constructor<P>, options?: ConstructOptions) {
   const updateProps = options?.lazyPropsUpdate ? lazyUpdateProps : fastUpdateProps
 
   return changeName((props: P) => {
     const ref = React.useRef<Data<P>>()
     let data = ref.current
 
-    if (data) {
+    if (!data) {
+      data = ref.current = {
+        beforeRender: () => null,
+        render: () => null,
+        callbacks: {},
+        state: { lastIndex: -1 },
+        prevProps: props,
+        props: { ...props }
+      }
+      inspectState(data)
+      withData(data, () => data!.render = constructor(data!.props))
+      return data.render()
+    }
+    else {
       if (data.prevProps !== props)
         data.prevProps = updateProps(props, data.props)
       inspectState(data)
       data.beforeRender()
       return data.render()
     }
-
-    ref.current = data = {
-      beforeRender() { },
-      callbacks: {},
-      state: { lastIndex: 0 },
-      render() { return null },
-      prevProps: props,
-      props: { ...props },
-      sharedStore: {
-        get [PROPS_STORE]() { return data?.props }
-      }
-    }
-
-    inspectState(data)
-    withData(data, () => {
-      data!.render = constructor(data!.props)
-    })
-    return data.render()
-  }, constructor) as React.FC<P>
-}
-
-/**
- * Returns a component with constructor functionality
- * 
- * _Does not accept or transmit props_
- */
-export function pafc(constructor: PAFC) {
-  return changeName(() => {
-    const ref = React.useRef<Data<null>>()
-    let data = ref.current
-
-    if (data) {
-      inspectState(data)
-      data.beforeRender()
-      return data.render()
-    }
-
-    ref.current = data = {
-      beforeRender() { },
-      callbacks: {},
-      state: { lastIndex: 0 },
-      render() { return null },
-      props: null
-    }
-
-    inspectState(data)
-    withData(data, () => {
-      data!.render = constructor()
-    })
-    return data.render()
-  }, constructor) as React.FC
-}
-
-/**
- * Returns a component with constructor functionality
- * 
- * _Updated faster then `afc`_
- */
-export function fafc<P extends object>(constructor: FAFC<P>) {
-  return changeName((props: P) => {
-    const ref = React.useRef<Data<FastProps<P>>>()
-    let data = ref.current
-
-    if (data) {
-      data.props.val = props
-      inspectState(data)
-      data.beforeRender()
-      return data.render()
-    }
-
-    ref.current = data = {
-      beforeRender() { },
-      render() { return null },
-      callbacks: {},
-      state: { lastIndex: 0 },
-      props: { val: props },
-      sharedStore: {
-        get [FAST_PROPS_STORE]() { return data?.props }
-      }
-    }
-
-    inspectState(data)
-    withData(data, () => {
-      data!.render = constructor(data!.props)
-    })
-    return data.render()
   }, constructor) as React.FC<P>
 }
 
 /**
  * Returns a memo component with constructor functionality
  */
-export function afcMemo<P extends object>(constructor: AFC<P>, options?: AFCOptions) {
+export function afcMemo<P extends object>(constructor: Constructor<P>, options?: ConstructOptions) {
   return React.memo(afc(constructor, options))
-}
-
-/**
- * Returns a memo component with constructor functionality
- * 
- * _Updates faster then `afc`_
- */
-export function fafcMemo<P extends object>(constructor: FAFC<P>) {
-  return React.memo(fafc(constructor))
-}
-
-/**
- * Returns a component with constructor functionality
- * 
- * _Does not accept or transmit props_
- */
-export function pafcMemo(constructor: PAFC) {
-  return React.memo(pafc(constructor))
 }
 
 /**
@@ -208,26 +117,6 @@ export function useForceUpdate() {
   return getForceUpdate()
 }
 
-export const MAIN_STORE = '__MAIN__'
-export const PROPS_STORE = '__PROPS__'
-export const FAST_PROPS_STORE = '__FAST_PROPS__'
-
-export function useSharedStore<T extends object = {}>(): T
-export function useSharedStore<T extends object = {}>(name: string): T
-export function useSharedStore<T extends object = {}>(intial: T): T
-export function useSharedStore<T extends object = {}>(name: string, initial: T): T
-export function useSharedStore<T extends object = {}>(nameOrInitial?: string | T, initial?: T): T {
-  const sharedStore = (getData().sharedStore ||= {})
-  let store: T
-
-  if (typeof nameOrInitial === 'string')
-    store = (sharedStore[nameOrInitial] ||= initial || {})
-  else
-    store = (sharedStore[MAIN_STORE] ||= nameOrInitial || {})
-
-  return store
-}
-
 /**
  * _Analog of `useEffect(callback, deps())`_
  */
@@ -241,13 +130,13 @@ export function useEffect(callback: React.EffectCallback, deps?: () => React.Dep
       const result = callback()
       return () => { prevResult?.(); result?.() }
     }
-    return
   }
-
-  callbacks.effect = callback
-  addToRenderAndCall(() => {
-    React.useEffect(callbacks.effect!, deps?.())
-  })
+  else {
+    callbacks.effect = callback
+    addToRenderAndCall(() => {
+      React.useEffect(callbacks.effect!, deps?.())
+    })
+  }
 }
 
 /**
@@ -263,13 +152,13 @@ export function useLayoutEffect(callback: React.EffectCallback, deps?: () => Rea
       const result = callback()
       return () => { prevResult?.(); result?.() }
     }
-    return
   }
-
-  callbacks.layoutEffect = callback
-  addToRenderAndCall(() => {
-    React.useLayoutEffect(callbacks.layoutEffect!, deps?.())
-  })
+  else {
+    callbacks.layoutEffect = callback
+    addToRenderAndCall(() => {
+      React.useLayoutEffect(callbacks.layoutEffect!, deps?.())
+    })
+  }
 }
 
 /**
@@ -283,13 +172,13 @@ export function useOnDestroy(callback: () => void): void {
   if (callbacks.afterUnmount) {
     const prevHandler = callbacks.afterUnmount
     callbacks.afterUnmount = () => { prevHandler(); callback() }
-    return
   }
-
-  callbacks.afterUnmount = callback
-  addToRenderAndCall(() => {
-    React.useEffect(() => callbacks.afterUnmount, [])
-  })
+  else {
+    callbacks.afterUnmount = callback
+    addToRenderAndCall(() => {
+      React.useEffect(() => callbacks.afterUnmount, [])
+    })
+  }
 }
 
 /**
@@ -303,13 +192,13 @@ export function useOnDraw(callback: () => void): void {
   if (callbacks.afterDraw) {
     const prevHandler = callbacks.afterDraw
     callbacks.afterDraw = () => { prevHandler(); callback() }
-    return
   }
-
-  callbacks.afterDraw = callback
-  addToRenderAndCall(() => {
-    React.useLayoutEffect(callbacks.afterDraw!, [])
-  })
+  else {
+    callbacks.afterDraw = callback
+    addToRenderAndCall(() => {
+      React.useLayoutEffect(callbacks.afterDraw!, [])
+    })
+  }
 }
 
 /**
@@ -323,13 +212,13 @@ export function useOnMount(callback: () => void): void {
   if (callbacks.afterMount) {
     const prevHandler = callbacks.afterMount
     callbacks.afterMount = () => { prevHandler(); callback() }
-    return
   }
-
-  callbacks.afterMount = callback
-  addToRenderAndCall(() => {
-    React.useEffect(callbacks.afterMount!, [])
-  })
+  else {
+    callbacks.afterMount = callback
+    addToRenderAndCall(() => {
+      React.useEffect(callbacks.afterMount!, [])
+    })
+  }
 }
 
 /**

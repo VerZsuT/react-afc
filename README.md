@@ -20,6 +20,7 @@ _Full type support._
 - [Regular hooks in constructor](#using-regular-hooks-in-the-body-of-the-constructor)
 - [Compatible with non-afc components](#compatible-with-non-afc-components)
 - [Common errors](#common-errors)
+- [API](#api)
 
 ## Installation
 
@@ -44,36 +45,36 @@ and also not to worry about an array of dependencies.
 
 The library is optimized as much as possible.
 
-[`afcMemo`](#afc-afcmemo)/[`fafcMemo`](#fafc-fafcmemo)/[`pafcMemo`](#pafc-pafcmemo) returns the `memo`-component  
-[`afc`](#afc-afcmemo)/[`fafc`](#fafc-fafcmemo)/[`pafc`](#pafc-pafcmemo) returns a regular component
+`afcMemo` returns the `memo`-component  
+`afc` returns a regular component
 
 Each render uses one `useRef` hook, and the `props` is updated (excluding the first render).
 
 Calling the following methods adds logic that is used during **each render**:
 
-- [`useObjectState`](#useobjectstate) /
-  [`useReactive`](#usereactive) /
-  [`useState`](#usestate)
+- `useObjectState` /
+  `useReactive` /
+  `useState`
   adds one **React.useState** call
-- [`useRedux`](#useredux)
+- `useRedux`
   adds **ReactRedux.useSelector** calls depending on the passed object (one key - one hook call)
-- [`useOnDestroy`](#useondestroy) /
-  [`useOnMount`](#useonmount) /
-  [`useOnDraw`](#useondraw) /
-  [`useEffect`](#useeffect) /
-  [`useLayoutEffect`](#uselayouteffect)
+- `useOnDestroy` /
+  `useOnMount` /
+  `useOnDraw` /
+  `useEffect` /
+  `useLayoutEffect`
   adds one **React.useEffect** call with the passed callback
-- [`useOnRender`](#useonrender) 
+- `useOnRender`
   adds a call the passed callback (performance directly depends on the actions in it)
-- [`useContext`](#usecontext)
+- `useContext`
   adds one **React.useContext** call
-- [`useDispatch`](#usedispatch) /
-  [`useActions`](#useactions)
+- `useDispatch` /
+  `useActions`
   adds one **ReactRedux.useDispatch** call
-- [`useMemo`](#usememo)
+- `useMemo`
   adds one **React.useMemo** call
 
-_Note:_ All of them except `useRedux` / `useOnRender` adds one hook call regardless of the number of its calls
+_Note:_ All of them except `useRedux` / `useOnRender` / `useMemo` / `useContext` adds one hook call regardless of the number of its calls
 
 Each of the methods can be called an **unlimited** number of times, but only within the constructor
 and in functions called from it
@@ -151,9 +152,9 @@ export default afc(Component)
 ## State management
 
 To work with the state, use
-[`useReactive`](#usereactive) /
-[`useObjectState`](#useobjectstate) /
-[`useState`](#usestate)
+`useReactive` /
+`useObjectState` /
+`useState`
 
 ```jsx
 import { afc, useObjectState, useReactive, useState } from 'react-afc'
@@ -196,7 +197,7 @@ function Component(props) {
 export default afc(Component)
 ```
 
-To work with **Redux** use [`useRedux`](#useredux) and [`useDispatch`](#usedispatch) / [`useActions`](#useactions)
+To work with **Redux** use `useRedux` and `useDispatch` / `useActions`
 
 ```jsx
 import { afc, useRedux, useDispatch, useActions } from 'react-afc'
@@ -237,7 +238,7 @@ export default afc(Component)
 
 ## Working with Context
 
-To use the context, import the [`useContext`](#usecontext).
+To use the context, import the `useContext`.
 
 _Returns `{ val: <context_value> }`, not the context itself_.
 
@@ -285,7 +286,7 @@ function Component() {
 export default afc(Component)
 ```
 
-Or use [wrapStaticHook](#wrapstatichook) / [wrapDynamicHook](#wrapdynamichook)
+Or use `wrapStaticHook` / `wrapDynamicHook`
 
 ```jsx
 import { afc, useOnRender, useForceUpdate, wrapStaticHook, wrapDynamicHook } from 'react-afc'
@@ -322,7 +323,7 @@ function Component() {
 export default afc(Component)
 ```
 
-[`useOnRender`](#useonrender) is called immediately and before each render (so as not to break hooks)
+`useOnRender` is called immediately and before each render (so as not to break hooks)
 
 ```jsx
 import { afc, useOnRender } from 'react-afc'
@@ -408,7 +409,7 @@ function CommonComponent(props) {
 }
 ```
 
-For single hard calculations use [useOnceCreated](#useoncecreated)
+For single hard calculations use `useOnceCreated`
 
 ## Common errors
 
@@ -464,7 +465,7 @@ function Component(props) {
 export default afc(Component)
 ```
 
-It is forbidden to use regular hooks in the constructor without the [`useOnRender`](#useonrender) wrapper.
+It is forbidden to use regular hooks in the constructor without the `useOnRender` wrapper.
 
 Since the "constructor" is called once, the call of the usual hooks in it will not be repeated in the render,
 which will cause the hooks to break and the application to crash.
@@ -496,6 +497,6 @@ function Component(props) {
 export default afc(Component)
 ```
 
-**API**
+## API
 
 See [Wiki](https://github.com/VerZsuT/react-afc/wiki)

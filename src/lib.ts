@@ -2,9 +2,9 @@ import { useDebugValue, useState } from 'react'
 
 import type { Data } from './types'
 
-const dataProps = ['beforeRender', 'forceUpdate', 'dispatch', 'events', 'render', 'props']
 const errorHandler = (_: any, name: string | symbol): boolean => {
-  if (dataProps.includes(name.toString())) // for react-native
+  const propNames = ['beforeRender', 'forceUpdate', 'dispatch', 'callbacks', 'render', 'state', 'prevProps', 'props']
+  if (propNames.includes(name.toString())) // for react-native
     throw new Error('Attempt to outside call react-afc method')
   return false
 }
@@ -74,6 +74,6 @@ export function changeName<
   CompType extends Function,
   ConstrType extends Function
 >(component: CompType, contructor: ConstrType): CompType {
-  component['displayName'] = contructor.name
+  component['displayName'] = contructor.name || 'afc_anon'
   return component
 }

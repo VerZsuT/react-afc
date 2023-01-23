@@ -27,14 +27,14 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: Con
       }
       inspectState(data)
       withData(data, () => data!.render = constructor(data!.props))
-      return data.render()
+      return data.render(props)
     }
     else {
       if (data.prevProps !== props)
         data.prevProps = updateProps(props, data.props)
       inspectState(data)
       data.beforeRender()
-      return data.render()
+      return data.render(props)
     }
   }, constructor) as React.FC<P>
 }

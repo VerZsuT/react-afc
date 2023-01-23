@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "Allows you to significantly simplify the optimization of functional react components",
   "keywords": [
     "react",

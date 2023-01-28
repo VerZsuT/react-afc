@@ -1,6 +1,6 @@
 {
   "name": "react-afc",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "Allows you to significantly simplify the optimization of functional react components",
   "keywords": [
     "react",
@@ -48,8 +48,8 @@
   "devDependencies": {
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "@typescript-eslint/eslint-plugin": "^5.48.2",
-    "@typescript-eslint/parser": "^5.48.2",
+    "@typescript-eslint/eslint-plugin": "^5.49.0",
+    "@typescript-eslint/parser": "^5.49.0",
     "eslint": "^8.32.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-react": "^7.32.1",

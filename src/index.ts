@@ -26,7 +26,19 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: Con
         props: { ...props }
       }
       inspectState(data)
-      withData(data, () => data!.render = constructor(data!.props))
+      withData(data, () => {
+        const result = constructor(data!.props)
+        if (result instanceof Promise) {
+          const forceUpdate = getForceUpdate()
+          result.then(render => {
+            data!.render = render
+            forceUpdate()
+          })
+        }
+        else {
+          data!.render = result
+        }
+      })
       return data.render(props)
     }
     else {

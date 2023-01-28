@@ -2,7 +2,7 @@ import type { EffectCallback, ReactNode } from 'react'
 
 import type { AnyAction, Dispatch } from 'redux'
 
-export type Constructor<P extends object = {}> = (props: P) => RenderFunc<P>
+export type Constructor<P extends object = {}> = (props: P) => RenderFunc<P> | Promise<RenderFunc<P>>
 
 export type HookToWrap = (...args: any[]) => any
 export type DynamicHookResult<T extends HookToWrap> = { val: ReturnType<T> }

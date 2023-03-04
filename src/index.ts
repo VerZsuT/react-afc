@@ -146,7 +146,7 @@ export function useEffect(callback: React.EffectCallback, deps?: () => React.Dep
   else {
     callbacks.effect = callback
     addToRenderAndCall(() => {
-      React.useEffect(callbacks.effect!, deps?.())
+      React.useEffect(() => callbacks.effect?.(), deps?.())
     })
   }
 }
@@ -168,7 +168,7 @@ export function useLayoutEffect(callback: React.EffectCallback, deps?: () => Rea
   else {
     callbacks.layoutEffect = callback
     addToRenderAndCall(() => {
-      React.useLayoutEffect(callbacks.layoutEffect!, deps?.())
+      React.useLayoutEffect(() => callbacks.layoutEffect?.(), deps?.())
     })
   }
 }
@@ -188,7 +188,7 @@ export function useOnDestroy(callback: () => void): void {
   else {
     callbacks.afterUnmount = callback
     addToRenderAndCall(() => {
-      React.useEffect(() => callbacks.afterUnmount, [])
+      React.useEffect(() => () => callbacks.afterUnmount?.(), [])
     })
   }
 }
@@ -208,7 +208,7 @@ export function useOnDraw(callback: () => void): void {
   else {
     callbacks.afterDraw = callback
     addToRenderAndCall(() => {
-      React.useLayoutEffect(callbacks.afterDraw!, [])
+      React.useLayoutEffect(() => callbacks.afterDraw?.(), [])
     })
   }
 }
@@ -228,7 +228,7 @@ export function useOnMount(callback: () => void): void {
   else {
     callbacks.afterMount = callback
     addToRenderAndCall(() => {
-      React.useEffect(callbacks.afterMount!, [])
+      React.useEffect(() => callbacks.afterMount?.(), [])
     })
   }
 }

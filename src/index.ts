@@ -1,29 +1,33 @@
-import React from 'react'
+import React, { type ReactNode } from 'react'
 
 import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { addState, addToRenderAndCall, changeName, fastUpdateProps, getData, getForceUpdate, inspectState, lazyUpdateProps, withData } from './lib'
-import type { Actions, CommonState, ConstructOptions, Constructor, Data, DynamicHookResult, HookToWrap, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
+import { addState, addToRenderAndCall, changeName, fastUpdateProps, getData, getForceUpdate, getRenderData, inspectState, lazyUpdateProps, withData, withRenderData } from './lib'
+import type { Actions, CommonState, ConstructOptions, Constructor, Data, HookToWrap, ObjectState, ObjectStateSetters, ReduxSelectors, RenderData, State } from './types'
 
-/**
- * Returns a component with constructor functionality
- */
+/** Returns a component with constructor functionality */
 export function afc<P extends object>(constructor: Constructor<P>, options?: ConstructOptions) {
   const updateProps = options?.lazyPropsUpdate ? lazyUpdateProps : fastUpdateProps
 
   return changeName((props: P) => {
-    const ref = React.useRef<Data<P>>()
-    let data = ref.current
+    const ref = React.useRef({} as unknown as { data: Data<P>, renderData: RenderData })
+    let { data, renderData } = ref.current
 
     if (!data) {
-      data = ref.current = {
-        beforeRender: () => null,
+      data = ref.current.data = {
+        beforeRender() { },
         render: () => null,
-        callbacks: {},
+        events: {},
         state: { lastIndex: -1 },
         prevProps: props,
         props: { ...props }
+      }
+      renderData = ref.current.renderData = {
+        callbacks: {
+          arr: [],
+          next: 0
+        }
       }
       inspectState(data)
       withData(data, () => {
@@ -39,101 +43,112 @@ export function afc<P extends object>(constructor: Constructor<P>, options?: Con
           data!.render = result
         }
       })
-      return data.render(props)
+      let view: ReactNode = null
+      withRenderData(renderData, () => view = data.render(props))
+      return view
     }
     else {
       if (data.prevProps !== props)
         data.prevProps = updateProps(props, data.props)
       inspectState(data)
+      renderData.callbacks.next = 0
       data.beforeRender()
-      return data.render(props)
+      let view: ReactNode = null
+      withRenderData(renderData, () => view = data.render(props))
+      return view
     }
   }, constructor) as React.FC<P>
 }
 
-/**
- * Returns a memo component with constructor functionality
- */
+/** Returns a memo component with constructor functionality */
 export function afcMemo<P extends object>(constructor: Constructor<P>, options?: ConstructOptions) {
   return React.memo(afc(constructor, options))
 }
 
+/** Allow to use inline callbacks */
+export function $<T extends (...args: any[]) => any>(callback: T) {
+  const { callbacks } = getRenderData()
+
+  if (callbacks.arr.length <= callbacks.next) {
+    callbacks.arr.push(callback)
+    callbacks.next++
+    return callback
+  }
+  else {
+    return callbacks.arr[callbacks.next++]
+  }
+}
+
 /**
  * Creates a state from object
- *
+ * 
  * _Before applying the state changes, superficially compares the previous and new state_
+ * 
  * @returns - { state, set<Key> }
  */
 export function useObjectState<T extends State>(initial: T): ObjectState<T> {
   const setters = {} as ObjectStateSetters<T>
-  const state = addState({ ...initial }).val
+  const [getState, setState] = addState({ ...initial })
   const forceUpdate = getForceUpdate()
 
   for (const name in initial) {
     const setterName = `set${name[0].toUpperCase()}${name.slice(1)}`
     setters[setterName] = (value: any) => {
-      if (state[name] === value) return
-      state[name] = value
+      if (getState()[name] === value) return
+      setState({ ...getState(), [name]: value })
       forceUpdate()
     }
   }
 
-  return { state, ...setters }
+  return { state: getState(), ...setters }
 }
 
-/**
- * _Analog of `React.useState(initial)`_
- */
+/** Returns `[stateGetter, stateSetter]` */
 export function useState<T = undefined>(initial: T): CommonState<T> {
-  const state = addState(initial)
+  const [getState, setState] = addState(initial)
   const forceUpdate = getForceUpdate()
-  const stateSetter = (value: T) => {
-    if (value === state.val) return
-    state.val = value
-    forceUpdate()
-  }
 
-  return [state, stateSetter]
+  return [
+    getState,
+    val => {
+      if (val === getState()) return
+      setState(val)
+      forceUpdate()
+    }
+  ]
 }
 
-/**
- * Returns redux-dispatch
- */
+/** Returns redux-dispatch */
 export function useDispatch<T = Dispatch<AnyAction>>(): T {
   return (getData().dispatch ||= addToRenderAndCall(reduxUseDispatch)) as T
 }
 
 /**
  * Subscribes to context changes
- * @returns `{ val: <context_value> }`
+ * 
+ * @returns `{ contextGetter }`
  */
 export function useContext<T>(context: React.Context<T>) {
-  const value = {} as { val: T }
-  addToRenderAndCall(() => value.val = React.useContext(context))
-  return value
+  let value: T
+  addToRenderAndCall(() => value = React.useContext(context))
+  return () => value
 }
 
-/**
- * Returns the getter of the memoized value
- */
+/** Returns the getter of the memoized value */
 export function useMemo<T>(factory: () => T, depsGetter: () => any[]) {
-  const value = {} as { val: T }
-  addToRenderAndCall(() => value.val = React.useMemo(factory, depsGetter()))
-  return value
+  let value: T
+  addToRenderAndCall(() => value = React.useMemo(factory, depsGetter()))
+  return () => value
 }
 
-/**
- * @returns function that updates the component when called
- */
+/** Returns function that updates the component when called */
 export function useForceUpdate() {
   return getForceUpdate()
 }
 
-/**
- * _Analog of `useEffect(callback, deps())`_
- */
-export function useEffect(callback: React.EffectCallback, deps?: () => React.DependencyList): void {
-  const callbacks = getData().callbacks
+/** _Analog of `useEffect(callback, deps())`_ */
+export function useEffect(callback: React.EffectCallback, deps?: () => React.DependencyList) {
+  const callbacks = getData().events
 
   if (callbacks.effect) {
     const prevHandler = callbacks.effect
@@ -145,17 +160,13 @@ export function useEffect(callback: React.EffectCallback, deps?: () => React.Dep
   }
   else {
     callbacks.effect = callback
-    addToRenderAndCall(() => {
-      React.useEffect(() => callbacks.effect?.(), deps?.())
-    })
+    addToRenderAndCall(() => React.useEffect(() => callbacks.effect?.(), deps?.()))
   }
 }
 
-/**
- * _Analog of `useLayoutEffect(callback, deps())`_
- */
-export function useLayoutEffect(callback: React.EffectCallback, deps?: () => React.DependencyList): void {
-  const callbacks = getData().callbacks
+/** _Analog of `useLayoutEffect(callback, deps())`_ */
+export function useLayoutEffect(callback: React.EffectCallback, deps?: () => React.DependencyList) {
+  const callbacks = getData().events
 
   if (callbacks.layoutEffect) {
     const prevHandler = callbacks.layoutEffect
@@ -167,19 +178,17 @@ export function useLayoutEffect(callback: React.EffectCallback, deps?: () => Rea
   }
   else {
     callbacks.layoutEffect = callback
-    addToRenderAndCall(() => {
-      React.useLayoutEffect(() => callbacks.layoutEffect?.(), deps?.())
-    })
+    addToRenderAndCall(() => React.useLayoutEffect(() => callbacks.layoutEffect?.(), deps?.()))
   }
 }
 
 /**
  * Calls the function after unmounting the component
- *
+ * 
  * _Analog of `useEffect(() => callback, [])`_
  */
-export function useOnDestroy(callback: () => void): void {
-  const callbacks = getData().callbacks
+export function useOnDestroy(callback: () => void) {
+  const callbacks = getData().events
 
   if (callbacks.afterUnmount) {
     const prevHandler = callbacks.afterUnmount
@@ -187,9 +196,7 @@ export function useOnDestroy(callback: () => void): void {
   }
   else {
     callbacks.afterUnmount = callback
-    addToRenderAndCall(() => {
-      React.useEffect(() => () => callbacks.afterUnmount?.(), [])
-    })
+    addToRenderAndCall(() => React.useEffect(() => () => callbacks.afterUnmount?.(), []))
   }
 }
 
@@ -198,8 +205,8 @@ export function useOnDestroy(callback: () => void): void {
  *
  * _Analog of `useLayoutEffect(callback, [])`_
  */
-export function useOnDraw(callback: () => void): void {
-  const callbacks = getData().callbacks
+export function useOnDraw(callback: () => void) {
+  const callbacks = getData().events
 
   if (callbacks.afterDraw) {
     const prevHandler = callbacks.afterDraw
@@ -207,9 +214,7 @@ export function useOnDraw(callback: () => void): void {
   }
   else {
     callbacks.afterDraw = callback
-    addToRenderAndCall(() => {
-      React.useLayoutEffect(() => callbacks.afterDraw?.(), [])
-    })
+    addToRenderAndCall(() => React.useLayoutEffect(() => callbacks.afterDraw?.(), []))
   }
 }
 
@@ -218,8 +223,8 @@ export function useOnDraw(callback: () => void): void {
  *
  * _Analog of `useEffect(callback, [])`_
  */
-export function useOnMount(callback: () => void): void {
-  const callbacks = getData().callbacks
+export function useOnMount(callback: () => void) {
+  const callbacks = getData().events
 
   if (callbacks.afterMount) {
     const prevHandler = callbacks.afterMount
@@ -227,65 +232,58 @@ export function useOnMount(callback: () => void): void {
   }
   else {
     callbacks.afterMount = callback
-    addToRenderAndCall(() => {
-      React.useEffect(() => callbacks.afterMount?.(), [])
-    })
+    addToRenderAndCall(() => React.useEffect(() => callbacks.afterMount?.(), []))
   }
 }
 
-/**
- * Calls the function immediately in constructor and before each render
- */
+/** Calls the function immediately in constructor and before each render */
 export function useOnRender(callback: () => void): void {
   addToRenderAndCall(callback)
 }
 
 /**
- * Returns reactive state.
+ * Returns reactive state.  
  * Changes to the state will cause the component to be updated.
  */
 export function useReactive<T extends State>(initial: T) {
   const forceUpdate = getForceUpdate()
-  const state = addState({ ...initial }).val
-  const obj = {} as T
+  const [getState, setState] = addState({ ...initial })
+  const result = {} as T
 
-  for (const key in state) {
-    Object.defineProperty(obj, key, {
-      get: () => state[key],
+  for (const key in getState()) {
+    Object.defineProperty(result, key, {
+      get: () => getState()[key],
       set(newVal: any) {
-        if (state[key] === newVal) return
-        state[key] = newVal
+        if (getState()[key] === newVal) return
+        setState({ ...getState(), [key]: newVal })
         forceUpdate()
       },
       enumerable: true
     })
   }
 
-  return obj
+  return result
 }
 
-/**
- * Creates an object of the form `{ current: <ref_value> }`
- */
+/** Creates an object of the form `{ current: <ref_value> }` */
 export function useRef<T = null>(initial = null as T): React.MutableRefObject<T> {
   return { current: initial }
 }
 
-/**
- * Returns wrapped redux actions to use it without dispatcher
- */
+/** Returns wrapped redux actions to use it without dispatcher */
 export function useActions<T extends Actions>(actions: T) {
   const dispatch = useDispatch()
-  const obj = {} as T
+  const result = {} as T
 
   for (const name in actions)
-    obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
+    result[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
 
-  return obj
+  return result
 }
 
 /**
  * Subscribes to redux-store changes and gets values depending on the passed configuration
+ * 
  * @param config - object of the type `{ key: selector }`
  */
 export function useRedux<T extends ReduxSelectors>(config: T) {
@@ -315,12 +313,12 @@ export function wrapStaticHook<T extends HookToWrap>(hook: T) {
 /**
  * Allows to use a regular hook in the afc component.
  * 
- * @returns dynamic value
+ * @returns dynamic value getter
  */
 export function wrapDynamicHook<T extends HookToWrap>(hook: T) {
   return (args: () => Parameters<T>) => {
-    const value = {} as DynamicHookResult<T>
-    useOnRender(() => value.val = hook(...args()))
-    return value
+    let value: ReturnType<T>
+    useOnRender(() => value = hook(...args()))
+    return () => value
   }
 }

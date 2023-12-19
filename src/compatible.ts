@@ -3,10 +3,16 @@ import React from 'react'
 import { useDispatch as reduxUseDispatch, useSelector as reduxUseSelector } from 'react-redux'
 import type { AnyAction, Dispatch } from 'redux'
 
-import { isConstruct as inAFC } from './lib'
+import { isConstruct as inAFC, isRender as inAFCRender } from './lib'
 import type { Actions, ObjectState, ObjectStateSetters, ReduxSelectors, State } from './types'
 
 import * as AFC from './index'
+
+/** Allow to use inline callbacks */
+export function $<T extends (...args: any[]) => any>(callback: T) {
+  if (inAFCRender()) return AFC.$(callback)
+  return callback
+}
 
 /**
  * _Compatible with non-afc components_
@@ -14,6 +20,7 @@ import * as AFC from './index'
  * Creates a state from object
  *
  * _Before applying the state changes, superficially compares the previous and new state_
+ * 
  * @returns - { state, set<Key> }
  */
 export function useObjectState<T extends State>(initial: T): ObjectState<T> {
@@ -52,21 +59,24 @@ export function useDispatch<T = Dispatch<AnyAction>>(): T {
  * _Compatible with non-afc components_
  *
  * Subscribes to context changes
- * @returns `{ val: <context_value> }`
+ * 
+ * @returns context value getter
  */
 export function useContext<T>(context: React.Context<T>) {
   if (inAFC()) return AFC.useContext(context)
-  return { val: React.useContext(context) }
+  const val = React.useContext(context)
+  return () => val
 }
 
 /**
  * _Compatible with non-afc components_
  *
- * Returns the getter of the memoized value
+ * @returns getter of the memoized value
  */
 export function useMemo<T>(factory: () => T, depsGetter: () => any[]) {
   if (inAFC()) return AFC.useMemo<T>(factory, depsGetter)
-  return { val: React.useMemo(factory, depsGetter()) }
+  const val = React.useMemo(factory, depsGetter())
+  return () => val
 }
 
 /**
@@ -181,19 +191,19 @@ export function useOnRender(callback: () => void): void {
 /**
  * _Compatible with non-afc components_
  *
- * Returns reactive state.
+ * Returns reactive state.  
  * Changes to the state will cause the component to be updated.
  */
 export function useReactive<T extends State>(state: T): T {
   if (inAFC()) return AFC.useReactive(state)
-  
+
   const setState = React.useState<{}>()[1]
 
   return useOnceCreated(() => {
     const value = { ...state }
-    const obj = {} as T
+    const result = {} as T
     for (const key in value) {
-      Object.defineProperty(obj, key, {
+      Object.defineProperty(result, key, {
         get: () => value[key],
         set(newValue: any) {
           if (value[key] === newValue) return
@@ -204,7 +214,7 @@ export function useReactive<T extends State>(state: T): T {
         configurable: false
       })
     }
-    return obj
+    return result
   })
 }
 
@@ -225,14 +235,14 @@ export function useRef<T = null>(initial = null as T): React.MutableRefObject<T>
  */
 export function useActions<T extends Actions>(actions: T): T {
   if (inAFC()) return AFC.useActions(actions)
-  
+
   const dispatch = reduxUseDispatch()
   return useOnceCreated(() => {
-    const obj = {} as T
+    const result = {} as T
     for (const name in actions)
-      obj[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
+      result[name] = ((arg: any) => dispatch(actions[name](arg))) as typeof actions[typeof name]
 
-    return obj
+    return result
   })
 }
 
@@ -240,11 +250,12 @@ export function useActions<T extends Actions>(actions: T): T {
  * _Compatible with non-afc components_
  *
  * Subscribes to redux-store changes and gets values depending on the passed configuration
+ * 
  * @param selectors - object of the type `{ key: selector }`
  */
 export function useRedux<T extends ReduxSelectors>(selectors: T) {
   if (inAFC()) return AFC.useRedux(selectors)
-  
+
   const state = {} as { [key in keyof T]: ReturnType<T[key]> }
   for (const name in selectors)
     state[name] = reduxUseSelector(selectors[name])

@@ -85,12 +85,12 @@ and in functions called from it
 _See the description below_.
 
 ```jsx
-import { useState, afcMemo, useActions, useRedux } from 'react-afc'
+import { useState, afcMemo, useActions, useRedux, $ } from 'react-afc'
 import { selectName, actions } from './store'
 
 function Component(props) {
-  const [multiplier, setMultiplier] = useState(2)
-  const [number, setNumber] = useState(5)
+  const [getMultiplier, setMultiplier] = useState(2)
+  const [getNumber, setNumber] = useState(5)
 
   const store = useRedux({
     name: selectName
@@ -101,24 +101,20 @@ function Component(props) {
   function onChangeMult(event) {
     setMultiplier(+event.currentTarget.value)
   }
-
-  function onChangeNumber(event) {
-    setNumber(+event.currentTarget.value)
-  }
   
   function onChangeName(event) {
     changeName(event.currentTarget.value)
   }
 
   function calcValue() {
-    return multiplier.val * number.val
+    return getMultiplier() * getNumber()
   }
 
   return () => <>
     <h1>Advanced function component</h1>
     <input value={store.name} onChange={onChangeName} />
-    <input value={multiplier.val} onChange={onChangeMult} />
-    <input value={number.val} onChange={onChangeNumber} />
+    <input value={getMultiplier()} onChange={onChangeMult} />
+    <input value={getNumber()} onChange={$(e => setNumber(+e.currentTarget.value))} />
     <p>Calculated: {calcValue()}</p>
     <p>Hi, {name}!</p>
   </>
@@ -183,8 +179,8 @@ function Component(props) {
   }
 
   // useState
-  const [name, setName2] = useState('Name')
-  const [surname, setSurname2] = useState('Surname')
+  const [getName, setName2] = useState('Name')
+  const [getSurname, setSurname2] = useState('Surname')
 
   function changeState4() {
     setName2('New name')
@@ -200,7 +196,7 @@ export default afc(Component)
 To work with **Redux** use `useRedux` and `useDispatch` / `useActions`
 
 ```jsx
-import { afc, useRedux, useDispatch, useActions } from 'react-afc'
+import { afc, useRedux, useDispatch, useActions, $ } from 'react-afc'
 import { actions } from './store'
 import { changeCount, selectCount } from './countSlice'
 
@@ -215,19 +211,13 @@ function Component(props) {
   }
 
   const dispatch = useDispatch()
-  function onChange(event) {
-    dispatch(changeCount(+e.target.value))
-  }
   
   // Alternative
   const { delCount } = useActions(actions)
-  function onDelCount() {
-    delCount()
-  }
 
   return () => <>
-    <input onChange={onChange}/>
-    <button onClick={onDelCount}>
+    <input onChange={$(e => dispatch(changeCount(+e.target.value)))}/>
+    <button onClick={$(() => delCount())}>
       Delete counter
     </button>
   </>
@@ -240,17 +230,17 @@ export default afc(Component)
 
 To use the context, import the `useContext`.
 
-_Returns `{ val: <context_value> }`, not the context itself_.
+_Returns `contextGetter`, not the context itself_.
 
 ```jsx
 import { afc, useContext } from 'react-afc'
 import CountContext from './CountContext'
 
 function Component(props) {
-  const count = useContext(CountContext)
+  const getCount = useContext(CountContext)
 
   function calculate() {
-    return count.val * 5
+    return getCount() * 5
   }
 
   return () => (
@@ -304,7 +294,7 @@ function Component() {
   let number = 5
 
   const staticResult = staticHook(number)
-  const dynamicResult = dynamicHook(() => [number])
+  const getDynamicResult = dynamicHook(() => [number])
   const forceUpdate = useForceUpdate()
 
   return () => {
@@ -312,7 +302,7 @@ function Component() {
 
     return <>
       <p>Static result: {staticResult}</p>
-      <p>Dynamic result: {dynamicResult.val}</p>
+      <p>Dynamic result: {getDynamicResult()}</p>
       <button onClick={forceUpdate}>
         Force update
       </button>

@@ -1,28 +1,50 @@
 import { useDebugValue, useState } from 'react'
 
-import type { Data } from './types'
+import type { CommonState, Data, RenderData } from './types'
 
-const errorHandler = (_: any, name: string | symbol): boolean => {
-  const propNames = ['beforeRender', 'forceUpdate', 'dispatch', 'callbacks', 'render', 'state', 'prevProps', 'props']
+function dataErrorHandler(_: any, name: string | symbol): boolean {
+  const propNames = ['beforeRender', 'forceUpdate', 'dispatch', 'events', 'render', 'state', 'prevProps', 'props']
   if (propNames.includes(name.toString())) // for react-native
     throw new Error('Attempt to outside call react-afc method')
   return false
 }
+function renderDataErrorHandler(_: any, name: string | symbol): boolean {
+  const propNames = ['callbacks']
+  if (propNames.includes(name.toString())) // for react-native
+    throw new Error('Attempt to outside call react-afc render method')
+  return false
+}
+
 const initialData: Data<any> = new Proxy({}, {
-  get: errorHandler,
-  set: errorHandler
+  get: dataErrorHandler,
+  set: dataErrorHandler
+})
+
+const initialRenderData: RenderData = new Proxy({}, {
+  get: renderDataErrorHandler,
+  set: renderDataErrorHandler
 })
 
 let currentData: Data<any> = initialData
+let currentRenderData: RenderData = initialRenderData
 
 export const getData = () => currentData
+export const getRenderData = () => currentRenderData
 export const isConstruct = () => currentData !== initialData
+export const isRender = () => currentRenderData !== initialRenderData
 
-export function withData(data: Data<any>, callback: () => void): void {
+export function withData(data: Data<any>, callback: () => void) {
   const prevData = currentData
   currentData = data
   callback()
   currentData = prevData
+}
+
+export function withRenderData(renderData: RenderData, callback: () => void) {
+  const prevData = currentRenderData
+  currentRenderData = renderData
+  callback()
+  currentRenderData = prevData
 }
 
 export function addToRender<T extends () => any>(callback: T) {
@@ -47,15 +69,15 @@ export function getForceUpdate() {
   return currentData.forceUpdate
 }
 
-export function addState<T = null>(initial = null as T): { val: T } {
+export function addState<T = null>(initial = null as T): CommonState<T> {
   const state = currentData.state
   const currentIndex = state.lastIndex + 1
   state[++state.lastIndex] = initial
 
-  return {
-    get val() { return state[currentIndex] },
-    set val(v) { state[currentIndex] = v }
-  }
+  return [
+    () => state[currentIndex],
+    val => state[currentIndex] = val
+  ]
 }
 
 export function lazyUpdateProps<DestType extends object>(source: any, dest: DestType) {

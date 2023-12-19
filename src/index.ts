@@ -66,7 +66,7 @@ export function afcMemo<P extends object>(constructor: Constructor<P>, options?:
 }
 
 /** Allow to use inline callbacks */
-export function $<T extends (...args: any[]) => any>(callback: T) {
+export function $<T extends (...args: any[]) => any>(callback: T): T {
   const { callbacks } = getRenderData()
 
   if (callbacks.arr.length <= callbacks.next) {
@@ -75,7 +75,7 @@ export function $<T extends (...args: any[]) => any>(callback: T) {
     return callback
   }
   else {
-    return callbacks.arr[callbacks.next++]
+    return callbacks.arr[callbacks.next++] as T
   }
 }
 

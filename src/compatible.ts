@@ -9,7 +9,7 @@ import type { Actions, ObjectState, ObjectStateSetters, ReduxSelectors, State } 
 import * as AFC from './index'
 
 /** Allow to use inline callbacks */
-export function $<T extends (...args: any[]) => any>(callback: T) {
+export function $<T extends (...args: any[]) => any>(callback: T): T {
   if (inAFCRender()) return AFC.$(callback)
   return callback
 }
